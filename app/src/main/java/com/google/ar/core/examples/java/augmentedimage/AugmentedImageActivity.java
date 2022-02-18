@@ -16,6 +16,7 @@
 
 package com.google.ar.core.examples.java.augmentedimage;
 
+import android.annotation.SuppressLint;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
@@ -23,9 +24,9 @@ import android.opengl.GLES20;
 import android.opengl.GLSurfaceView;
 import android.os.Bundle;
 import android.util.Log;
-import android.util.Pair;
 import android.view.View;
 import android.widget.ImageView;
+import android.widget.TextView;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import com.bumptech.glide.Glide;
@@ -37,7 +38,11 @@ import com.google.ar.core.AugmentedImageDatabase;
 import com.google.ar.core.Camera;
 import com.google.ar.core.Config;
 import com.google.ar.core.Frame;
+import com.google.ar.core.Pose;
 import com.google.ar.core.Session;
+import com.google.ar.core.TrackingState;
+import com.google.ar.core.examples.java.augmentedimage.localization.AugmentedImagesLocalizer;
+import com.google.ar.core.examples.java.augmentedimage.localization.Workspace;
 import com.google.ar.core.examples.java.augmentedimage.rendering.AugmentedImageRenderer;
 import com.google.ar.core.examples.java.common.helpers.CameraPermissionHelper;
 import com.google.ar.core.examples.java.common.helpers.DisplayRotationHelper;
@@ -52,9 +57,7 @@ import com.google.ar.core.exceptions.UnavailableSdkTooOldException;
 import com.google.ar.core.exceptions.UnavailableUserDeclinedInstallationException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
+
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
 
@@ -74,6 +77,7 @@ public class AugmentedImageActivity extends AppCompatActivity implements GLSurfa
   // Rendering. The Renderers are created here, and initialized when the GL surface is created.
   private GLSurfaceView surfaceView;
   private ImageView fitToScanView;
+  private TextView coordTextView;
   private RequestManager glideRequestManager;
 
   private boolean installRequested;
@@ -94,13 +98,17 @@ public class AugmentedImageActivity extends AppCompatActivity implements GLSurfa
   // Augmented image and its associated center pose anchor, keyed by index of the augmented image in
   // the
   // database.
-  private final Map<Integer, Pair<AugmentedImage, Anchor>> augmentedImageMap = new HashMap<>();
+//  private final Map<Integer, Pair<AugmentedImage, Anchor>> augmentedImageMap = new HashMap<>();
+
+  private Workspace workspace;
+  private AugmentedImagesLocalizer localizer;
 
   @Override
   protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
     setContentView(R.layout.activity_main);
     surfaceView = findViewById(R.id.surfaceview);
+    coordTextView = findViewById(R.id.coordTextView);
     displayRotationHelper = new DisplayRotationHelper(/*context=*/ this);
 
     // Set up renderer.
@@ -118,6 +126,11 @@ public class AugmentedImageActivity extends AppCompatActivity implements GLSurfa
         .into(fitToScanView);
 
     installRequested = false;
+
+    messageSnackbarHelper.setMaxLines(5);
+
+    workspace= new Workspace("workspaces/default.json", this);
+    localizer = new AugmentedImagesLocalizer(workspace);
   }
 
   @Override
@@ -276,6 +289,9 @@ public class AugmentedImageActivity extends AppCompatActivity implements GLSurfa
       Frame frame = session.update();
       Camera camera = frame.getCamera();
 
+      // Attempt to update current position based on known locations of augmented images
+      localizer.update(frame, session, true);
+
       // Keep the screen unlocked while tracking, but allow it to lock when tracking stops.
       trackingStateHelper.updateKeepScreenOnFlag(camera.getTrackingState());
 
@@ -294,8 +310,35 @@ public class AugmentedImageActivity extends AppCompatActivity implements GLSurfa
       final float[] colorCorrectionRgba = new float[4];
       frame.getLightEstimate().getColorCorrection(colorCorrectionRgba, 0);
 
-      // Visualize augmented images.
-      drawAugmentedImages(frame, projmtx, viewmtx, colorCorrectionRgba);
+      if(localizer.getCalibrated()) {
+        // Visualize augmented images.
+        drawAugmentedImages(projmtx, viewmtx, colorCorrectionRgba);
+
+        Pose cameraAbsPose = localizer.convertToAbsPose(camera.getPose());
+//        Log.d("Localizer", cameraAbsPose.toString());
+        @SuppressLint("DefaultLocale") String message = String.format("X: %.2f \nY: %.2f \nZ: %.2f",
+                cameraAbsPose.tx(),
+                cameraAbsPose.ty(),
+                cameraAbsPose.tz()
+        );
+        this.runOnUiThread(
+                new Runnable() {
+                  @Override
+                  public void run() {
+                    fitToScanView.setVisibility(View.GONE);
+                    coordTextView.setVisibility(View.VISIBLE);
+                    coordTextView.setText(message);
+                  }});
+      } else {
+        // Show the prompt to scan image if we are not tracking any anchors
+        this.runOnUiThread(
+                new Runnable() {
+                  @Override
+                  public void run() {
+                    fitToScanView.setVisibility(View.VISIBLE);
+                  }});
+      }
+
     } catch (Throwable t) {
       // Avoid crashing the application due to unhandled exceptions.
       Log.e(TAG, "Exception on the OpenGL thread", t);
@@ -311,70 +354,16 @@ public class AugmentedImageActivity extends AppCompatActivity implements GLSurfa
     session.configure(config);
   }
 
-  private void drawAugmentedImages(
-      Frame frame, float[] projmtx, float[] viewmtx, float[] colorCorrectionRgba) {
-    Collection<AugmentedImage> updatedAugmentedImages =
-        frame.getUpdatedTrackables(AugmentedImage.class);
+  private void drawAugmentedImages(float[] projmtx, float[] viewmtx, float[] colorCorrectionRgba) {
 
-    // Iterate to update augmentedImageMap, remove elements we cannot draw.
-    for (AugmentedImage augmentedImage : updatedAugmentedImages) {
-      switch (augmentedImage.getTrackingState()) {
-        case PAUSED:
-          // When an image is in PAUSED state, but the camera is not PAUSED, it has been detected,
-          // but not yet tracked.
-          String text = String.format("Detected Image %d", augmentedImage.getIndex());
-          messageSnackbarHelper.showMessage(this, text);
-          break;
+    for(AugmentedImagesLocalizer.Companion.CalibrationPoint point : localizer.getCalibrationMap().values())
+    {
+      AugmentedImage augmentedImage = point.getAugmentedImage();
+      Anchor centerAnchor = point.getAnchor();
 
-        case TRACKING:
-          // Have to switch to UI Thread to update View.
-          this.runOnUiThread(
-              new Runnable() {
-                @Override
-                public void run() {
-                  fitToScanView.setVisibility(View.GONE);
-                }
-              });
-
-          // Create a new anchor for newly found images.
-          if (!augmentedImageMap.containsKey(augmentedImage.getIndex())) {
-            Anchor centerPoseAnchor = augmentedImage.createAnchor(augmentedImage.getCenterPose());
-            augmentedImageMap.put(
-                augmentedImage.getIndex(), Pair.create(augmentedImage, centerPoseAnchor));
-          }
-          Camera camera = frame.getCamera();
-//          Log.d(String.format("Image %d", augmentedImage.getIndex()), camera.getPose().compose(augmentedImage.getCenterPose()).toString());
-//          Log.d(String.format("Net %d", augmentedImage.getIndex()), augmentedImage.getCenterPose().compose(camera.getPose().inverse()).toString());
-          float[] cameraxyz = camera.getPose().getTranslation();
-          float[] imagexyz = augmentedImage.getCenterPose().getTranslation();
-          double x = cameraxyz[0] - imagexyz[0];
-          double y = cameraxyz[1] - imagexyz[1];
-          double z = cameraxyz[2] - imagexyz[2];
-          Log.d(String.format("Net %d", augmentedImage.getIndex()),String.format("%s %s %s", x, y, z));
-//          Log.d(String.format("Image %d", augmentedImage.getIndex()), augmentedImage.getCenterPose().toString());
-//          Log.d(String.format("Camera", augmentedImage.getIndex()), camera.getPose().toString());
-          break;
-
-        case STOPPED:
-          augmentedImageMap.remove(augmentedImage.getIndex());
-          break;
-
-        default:
-          break;
-      }
-    }
-
-    // Draw all images in augmentedImageMap
-    for (Pair<AugmentedImage, Anchor> pair : augmentedImageMap.values()) {
-      AugmentedImage augmentedImage = pair.first;
-      Anchor centerAnchor = augmentedImageMap.get(augmentedImage.getIndex()).second;
-      switch (augmentedImage.getTrackingState()) {
-        case TRACKING:
-          augmentedImageRenderer.draw(
-              viewmtx, projmtx, augmentedImage, centerAnchor, colorCorrectionRgba);
-          break;
-        default:
-          break;
+      if (augmentedImage.getTrackingState() == TrackingState.TRACKING) {
+        augmentedImageRenderer.draw(
+                viewmtx, projmtx, augmentedImage, centerAnchor, colorCorrectionRgba);
       }
     }
   }
@@ -389,10 +378,12 @@ public class AugmentedImageActivity extends AppCompatActivity implements GLSurfa
     // * shorter setup time
     // * doesn't require images to be packaged in apk.
     if (useSingleImage) {
+
+      String name = "rabbit.png";
 //      Bitmap augmentedImageBitmap = loadAugmentedImageBitmap("default.jpg");
       Bitmap augmentedImageBitmap1 = loadAugmentedImageBitmap("7x7_1000-0.jpg");
 //      Bitmap augmentedImageBitmap2 = loadAugmentedImageBitmap("7x7_1000-1.jpg");
-      Bitmap augmentedImageBitmap2 = loadAugmentedImageBitmap("default.jpg");
+      Bitmap augmentedImageBitmap2 = loadAugmentedImageBitmap(name);
       if (augmentedImageBitmap1 == null) {
         return false;
       }

@@ -14,23 +14,41 @@
    limitations under the License.
 -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/layout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:backgroundTint="#D2FFFFFF"
+    android:visibility="visible"
     tools:context="com.google.ar.core.apps.augmentedimage.AugmentedImageActivity">
 
   <android.opengl.GLSurfaceView
       android:id="@+id/surfaceview"
       android:layout_width="fill_parent"
       android:layout_height="fill_parent"
-      android:layout_gravity="top"/>
+      android:layout_gravity="top" />
 
   <ImageView
       android:id="@+id/image_view_fit_to_scan"
       android:layout_width="match_parent"
       android:layout_height="match_parent"
       android:layout_gravity="center"
-      android:scaleType="fitCenter"
-      />
+      android:scaleType="fitCenter" />
+  <ImageView
+      android:id="@+id/imageView"
+      android:layout_width="160dp"
+      android:layout_height="160dp"
+      android:src="@android:drawable/screen_background_dark_transparent" />
+  <TextView
+      android:id="@+id/coordTextView"
+      android:layout_width="wrap_content"
+      android:layout_height="wrap_content"
+      android:backgroundTint="#D7000000"
+      android:textSize="40sp"
+      android:text="TextView"
+      android:visibility="invisible" />
+
+
 
 </FrameLayout>

@@ -17,7 +17,6 @@
 package com.google.ar.core.examples.java.augmentedimage;
 
 import android.annotation.SuppressLint;
-import android.app.Activity;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
@@ -43,6 +42,7 @@ import com.google.ar.core.Pose;
 import com.google.ar.core.Session;
 import com.google.ar.core.TrackingState;
 import com.google.ar.core.examples.java.augmentedimage.localization.AugmentedImagesLocalizer;
+import com.google.ar.core.examples.java.augmentedimage.localization.Workspace;
 import com.google.ar.core.examples.java.augmentedimage.rendering.AugmentedImageRenderer;
 import com.google.ar.core.examples.java.common.helpers.CameraPermissionHelper;
 import com.google.ar.core.examples.java.common.helpers.DisplayRotationHelper;
@@ -100,7 +100,8 @@ public class AugmentedImageActivity extends AppCompatActivity implements GLSurfa
   // database.
 //  private final Map<Integer, Pair<AugmentedImage, Anchor>> augmentedImageMap = new HashMap<>();
 
-  private final AugmentedImagesLocalizer localizer = new AugmentedImagesLocalizer();
+  private Workspace workspace;
+  private AugmentedImagesLocalizer localizer;
 
   @Override
   protected void onCreate(Bundle savedInstanceState) {
@@ -127,6 +128,9 @@ public class AugmentedImageActivity extends AppCompatActivity implements GLSurfa
     installRequested = false;
 
     messageSnackbarHelper.setMaxLines(5);
+
+    workspace= new Workspace("workspaces/default.json", this);
+    localizer = new AugmentedImagesLocalizer(workspace);
   }
 
   @Override
@@ -286,7 +290,7 @@ public class AugmentedImageActivity extends AppCompatActivity implements GLSurfa
       Camera camera = frame.getCamera();
 
       // Attempt to update current position based on known locations of augmented images
-      localizer.update(frame, true);
+      localizer.update(frame, session, true);
 
       // Keep the screen unlocked while tracking, but allow it to lock when tracking stops.
       trackingStateHelper.updateKeepScreenOnFlag(camera.getTrackingState());
@@ -312,7 +316,7 @@ public class AugmentedImageActivity extends AppCompatActivity implements GLSurfa
 
         Pose cameraAbsPose = localizer.convertToAbsPose(camera.getPose());
 //        Log.d("Localizer", cameraAbsPose.toString());
-        @SuppressLint("DefaultLocale") String message = String.format("X: %.2f \nY: %.2f \nZ:%.2f",
+        @SuppressLint("DefaultLocale") String message = String.format("X: %.2f \nY: %.2f \nZ: %.2f",
                 cameraAbsPose.tx(),
                 cameraAbsPose.ty(),
                 cameraAbsPose.tz()
@@ -374,10 +378,12 @@ public class AugmentedImageActivity extends AppCompatActivity implements GLSurfa
     // * shorter setup time
     // * doesn't require images to be packaged in apk.
     if (useSingleImage) {
+
+      String name = "rabbit.png";
 //      Bitmap augmentedImageBitmap = loadAugmentedImageBitmap("default.jpg");
       Bitmap augmentedImageBitmap1 = loadAugmentedImageBitmap("7x7_1000-0.jpg");
 //      Bitmap augmentedImageBitmap2 = loadAugmentedImageBitmap("7x7_1000-1.jpg");
-      Bitmap augmentedImageBitmap2 = loadAugmentedImageBitmap("default.jpg");
+      Bitmap augmentedImageBitmap2 = loadAugmentedImageBitmap(name);
       if (augmentedImageBitmap1 == null) {
         return false;
       }

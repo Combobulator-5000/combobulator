@@ -3,19 +3,17 @@ package com.google.ar.core.examples.java.augmentedimage.localization
 import com.google.ar.core.*
 import java.util.*
 
-class AugmentedImagesLocalizer {
+class AugmentedImagesLocalizer(private val workspace: Workspace) {
 
     companion object {
         var TAG = "Localizer"
 
-        class CalibrationPoint(val augmentedImage: AugmentedImage, workspace: Workspace) {
-            val anchor : Anchor = augmentedImage.createAnchor(augmentedImage.centerPose)
+        class CalibrationPoint(val augmentedImage: AugmentedImage, workspace: Workspace, session: Session) {
+//            val anchor : Anchor = augmentedImage.createAnchor(augmentedImage.centerPose)
+            val anchor : Anchor = session.createAnchor(augmentedImage.centerPose)
             val absPose : Pose = workspace.getCalibrationPointPose(augmentedImage.index)
         }
     }
-
-    val workspace : Workspace = Workspace()
-
     var calibrated : Boolean = false
     val calibrationMap : MutableMap<Int, CalibrationPoint> = HashMap()
     var currentAbsTransform : Pose? = null
@@ -24,8 +22,8 @@ class AugmentedImagesLocalizer {
         return currentAbsTransform!!.compose(framePose)
     }
 
-    fun update(frame : Frame, attemptCalibration : Boolean = true) {
-        if (attemptCalibration) updateCalibrationMap(frame)
+    fun update(frame : Frame, session : Session, attemptCalibration : Boolean = true) {
+        if (attemptCalibration) updateCalibrationMap(frame, session)
 
         val absTransformGuesses = calibrationMap.values.map {
             it.absPose.compose(it.anchor.pose.inverse())
@@ -43,7 +41,7 @@ class AugmentedImagesLocalizer {
 
     }
 
-    private fun updateCalibrationMap(frame : Frame) {
+    private fun updateCalibrationMap(frame : Frame, session : Session) {
 
         val updatedAugmentedImages: Collection<AugmentedImage> =
             frame.getUpdatedTrackables<AugmentedImage>(AugmentedImage::class.java)
@@ -57,10 +55,13 @@ class AugmentedImagesLocalizer {
                     // Create a new anchor for newly found images.
                     if (!calibrationMap.containsKey(augmentedImage.index))
                     {
-                        calibrationMap[augmentedImage.index] = CalibrationPoint(augmentedImage, workspace)
+                        calibrationMap[augmentedImage.index] = CalibrationPoint(augmentedImage, workspace, session)
                     }
                 }
-                TrackingState.STOPPED -> calibrationMap.remove(augmentedImage.index)
+                TrackingState.STOPPED -> {
+                    val out = calibrationMap.remove(augmentedImage.index)
+                    out?.anchor?.detach()
+                }
                 else -> {
                 }
             }

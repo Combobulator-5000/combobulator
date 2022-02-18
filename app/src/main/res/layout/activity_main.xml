@@ -14,6 +14,7 @@
    limitations under the License.
 -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/layout"
     android:layout_width="match_parent"
@@ -34,13 +35,20 @@
       android:layout_height="match_parent"
       android:layout_gravity="center"
       android:scaleType="fitCenter" />
-
+  <ImageView
+      android:id="@+id/imageView"
+      android:layout_width="160dp"
+      android:layout_height="160dp"
+      android:src="@android:drawable/screen_background_dark_transparent" />
   <TextView
       android:id="@+id/coordTextView"
       android:layout_width="wrap_content"
       android:layout_height="wrap_content"
       android:backgroundTint="#D7000000"
+      android:textSize="40sp"
       android:text="TextView"
       android:visibility="invisible" />
+
+
 
 </FrameLayout>

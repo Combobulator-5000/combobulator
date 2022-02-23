@@ -17,6 +17,7 @@
 package com.google.ar.core.examples.java.augmentedimage;
 
 import android.annotation.SuppressLint;
+import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
@@ -41,6 +42,8 @@ import com.google.ar.core.Frame;
 import com.google.ar.core.Pose;
 import com.google.ar.core.Session;
 import com.google.ar.core.TrackingState;
+import com.google.ar.core.examples.java.augmentedimage.classifier.Classifier;
+import com.google.ar.core.examples.java.augmentedimage.classifier.DatabaseObject;
 import com.google.ar.core.examples.java.augmentedimage.localization.AugmentedImagesLocalizer;
 import com.google.ar.core.examples.java.augmentedimage.localization.Workspace;
 import com.google.ar.core.examples.java.augmentedimage.rendering.AugmentedImageRenderer;
@@ -57,9 +60,13 @@ import com.google.ar.core.exceptions.UnavailableSdkTooOldException;
 import com.google.ar.core.exceptions.UnavailableUserDeclinedInstallationException;
 
 import org.opencv.android.OpenCVLoader;
+import org.opencv.core.Mat;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
@@ -106,6 +113,19 @@ public class AugmentedImageActivity extends AppCompatActivity implements GLSurfa
   private Workspace workspace;
   private AugmentedImagesLocalizer localizer;
 
+  protected void runSeparateThread() {
+    DatabaseObject earth = new DatabaseObject("earth");
+    earth.addAssetImage("classifier_test_images/default.jpg", this);
+
+    for(String name : Arrays.asList("fork", "scissors", "pliers")) {
+      DatabaseObject obj = new DatabaseObject(name);
+      for (int i = 1; i <= 3; i++) {
+        String filename = String.format("classifier_test_images/%s%d.jpg", name, i);
+        obj.addAssetImage(filename, this);
+      }
+      Log.d("Classifier", obj.toString());
+    }
+  }
   @Override
   protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
@@ -115,6 +135,10 @@ public class AugmentedImageActivity extends AppCompatActivity implements GLSurfa
       Log.e("opencv", "failed to load opencv");
       return;
     }
+
+    Thread thread = new Thread(() -> runSeparateThread());
+    thread.start();
+
 
     setContentView(R.layout.activity_main);
     surfaceView = findViewById(R.id.surfaceview);

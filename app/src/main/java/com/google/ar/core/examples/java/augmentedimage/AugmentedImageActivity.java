@@ -55,6 +55,9 @@ import com.google.ar.core.exceptions.UnavailableApkTooOldException;
 import com.google.ar.core.exceptions.UnavailableArcoreNotInstalledException;
 import com.google.ar.core.exceptions.UnavailableSdkTooOldException;
 import com.google.ar.core.exceptions.UnavailableUserDeclinedInstallationException;
+
+import org.opencv.android.OpenCVLoader;
+
 import java.io.IOException;
 import java.io.InputStream;
 
@@ -106,6 +109,13 @@ public class AugmentedImageActivity extends AppCompatActivity implements GLSurfa
   @Override
   protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
+
+    // Load & enable OpenCV
+    if (!OpenCVLoader.initDebug()) {
+      Log.e("opencv", "failed to load opencv");
+      return;
+    }
+
     setContentView(R.layout.activity_main);
     surfaceView = findViewById(R.id.surfaceview);
     coordTextView = findViewById(R.id.coordTextView);

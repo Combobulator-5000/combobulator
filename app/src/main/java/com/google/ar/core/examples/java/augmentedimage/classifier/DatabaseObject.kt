@@ -17,7 +17,6 @@ class DatabaseObject(val name : String){
     val location : Pose = Pose.makeTranslation(0f,0f,0f)
     val allDescriptors : MutableList<Mat> = ArrayList()
 
-
     // Below: methods to add reference image data (in multiple formats) to the database object
     fun addAssetImage(fileName : String, context : Context) {
         val mat = OpenCVHelpers.readImageMatFromAsset(fileName, context)

@@ -4,6 +4,7 @@ import android.content.Context
 import android.graphics.BitmapFactory
 import android.media.Image
 import android.util.Log
+import android.view.View
 import com.google.ar.core.examples.java.augmentedimage.OpenCVHelpers
 import org.opencv.android.Utils
 import org.opencv.core.Mat
@@ -15,7 +16,17 @@ import java.io.IOException
 import java.io.InputStream
 import java.lang.NullPointerException
 
-class Classifier(val objects : List<DatabaseObject>) {
+class Classifier {
+
+    companion object{
+        val requestHandler = ClassifyRequestHandler()
+    }
+
+    val objects : MutableList<DatabaseObject> = ArrayList()
+
+    fun addObjects(newObjects : List<DatabaseObject>) {
+        objects.addAll(newObjects)
+    }
 
     fun evaluate(image : Image) : DatabaseObject {
         return evaluate(OpenCVHelpers.imageToMat(image))
@@ -29,6 +40,8 @@ class Classifier(val objects : List<DatabaseObject>) {
         val objectsWithScores = objects.map {
             Pair(it, getMatchScore(descriptors, it))
         }.sortedByDescending {it.second}
+
+        Log.d("Classifier", objectsWithScores.joinToString { "\n" })
 
         return objectsWithScores[0].first
     }
@@ -58,5 +71,24 @@ class Classifier(val objects : List<DatabaseObject>) {
 
         Log.d("Classifier", "good matches: $goodMatchesCount")
         return goodMatchesCount
+    }
+
+    // Handles capturing button clicks and passing the info between UI thread and the main
+    // activity's onDrawFrame method
+    class ClassifyRequestHandler : View.OnClickListener {
+
+        var tapQueued = false
+
+        @Synchronized
+        override fun onClick(p0: View?) {
+            tapQueued = true
+        }
+
+        @Synchronized
+        fun poll() : Boolean {
+            val temp = tapQueued
+            tapQueued = false
+            return temp
+        }
     }
 }

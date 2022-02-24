@@ -17,16 +17,18 @@
 package com.google.ar.core.examples.java.augmentedimage;
 
 import android.annotation.SuppressLint;
-import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.media.Image;
 import android.net.Uri;
 import android.opengl.GLES20;
 import android.opengl.GLSurfaceView;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
@@ -60,7 +62,6 @@ import com.google.ar.core.exceptions.UnavailableSdkTooOldException;
 import com.google.ar.core.exceptions.UnavailableUserDeclinedInstallationException;
 
 import org.opencv.android.OpenCVLoader;
-import org.opencv.core.Mat;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -87,7 +88,6 @@ public class AugmentedImageActivity extends AppCompatActivity implements GLSurfa
   // Rendering. The Renderers are created here, and initialized when the GL surface is created.
   private GLSurfaceView surfaceView;
   private ImageView fitToScanView;
-  private TextView coordTextView;
   private RequestManager glideRequestManager;
 
   private boolean installRequested;
@@ -102,6 +102,9 @@ public class AugmentedImageActivity extends AppCompatActivity implements GLSurfa
 
   private boolean shouldConfigureSession = false;
 
+  // Other UI elements
+  private DebugPanel debugPanel;
+
   // Augmented image configuration and rendering.
   // Load a single image (true) or a pre-generated image database (false).
   private final boolean useSingleImage = true;
@@ -113,22 +116,35 @@ public class AugmentedImageActivity extends AppCompatActivity implements GLSurfa
   private Workspace workspace;
   private AugmentedImagesLocalizer localizer;
 
-  protected void runSeparateThread() {
+  private final Classifier classifier = new Classifier();
+
+  protected void setupObjectDatabase() {
+    List<DatabaseObject> objects = new ArrayList<>();
+
     DatabaseObject earth = new DatabaseObject("earth");
     earth.addAssetImage("classifier_test_images/default.jpg", this);
+    objects.add(earth);
 
     for(String name : Arrays.asList("fork", "scissors", "pliers")) {
       DatabaseObject obj = new DatabaseObject(name);
       for (int i = 1; i <= 3; i++) {
-        String filename = String.format("classifier_test_images/%s%d.jpg", name, i);
+        @SuppressLint("DefaultLocale") String filename = String.format("classifier_test_images/%s%d.jpg", name, i);
         obj.addAssetImage(filename, this);
       }
+      objects.add(obj);
       Log.d("Classifier", obj.toString());
     }
+
+    synchronized (classifier) {
+      classifier.addObjects(objects);
+    }
   }
+
+
   @Override
   protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
+    setContentView(R.layout.activity_main);
 
     // Load & enable OpenCV
     if (!OpenCVLoader.initDebug()) {
@@ -136,13 +152,10 @@ public class AugmentedImageActivity extends AppCompatActivity implements GLSurfa
       return;
     }
 
-    Thread thread = new Thread(() -> runSeparateThread());
-    thread.start();
+    Thread dbsetup = new Thread(this::setupObjectDatabase);
+    dbsetup.start();
 
-
-    setContentView(R.layout.activity_main);
     surfaceView = findViewById(R.id.surfaceview);
-    coordTextView = findViewById(R.id.coordTextView);
     displayRotationHelper = new DisplayRotationHelper(/*context=*/ this);
 
     // Set up renderer.
@@ -161,10 +174,14 @@ public class AugmentedImageActivity extends AppCompatActivity implements GLSurfa
 
     installRequested = false;
 
-    messageSnackbarHelper.setMaxLines(5);
 
     workspace= new Workspace("workspaces/default.json", this);
     localizer = new AugmentedImagesLocalizer(workspace);
+
+    debugPanel = new DebugPanel(this);
+
+    Button classifyButton = findViewById(R.id.classifyButton);
+    classifyButton.setOnClickListener(Classifier.Companion.getRequestHandler());
   }
 
   @Override
@@ -323,8 +340,23 @@ public class AugmentedImageActivity extends AppCompatActivity implements GLSurfa
       Frame frame = session.update();
       Camera camera = frame.getCamera();
 
+
+
+
+      // If a request to classify an image is pending, act on it
+      if(Classifier.Companion.getRequestHandler().poll()){
+        Image image = frame.acquireCameraImage();
+        DatabaseObject target = classifier.evaluate(image);
+
+        debugPanel.setTarget(target);
+
+        image.close();
+      }
       // Attempt to update current position based on known locations of augmented images
       localizer.update(frame, session, true);
+
+
+
 
       // Keep the screen unlocked while tracking, but allow it to lock when tracking stops.
       trackingStateHelper.updateKeepScreenOnFlag(camera.getTrackingState());
@@ -349,19 +381,14 @@ public class AugmentedImageActivity extends AppCompatActivity implements GLSurfa
         drawAugmentedImages(projmtx, viewmtx, colorCorrectionRgba);
 
         Pose cameraAbsPose = localizer.convertToAbsPose(camera.getPose());
-//        Log.d("Localizer", cameraAbsPose.toString());
-        @SuppressLint("DefaultLocale") String message = String.format("X: %.2f \nY: %.2f \nZ: %.2f",
-                cameraAbsPose.tx(),
-                cameraAbsPose.ty(),
-                cameraAbsPose.tz()
-        );
+        debugPanel.setLocation(cameraAbsPose);
+
         this.runOnUiThread(
                 new Runnable() {
                   @Override
                   public void run() {
+                    debugPanel.updateText();
                     fitToScanView.setVisibility(View.GONE);
-                    coordTextView.setVisibility(View.VISIBLE);
-                    coordTextView.setText(message);
                   }});
       } else {
         // Show the prompt to scan image if we are not tracking any anchors
@@ -369,6 +396,7 @@ public class AugmentedImageActivity extends AppCompatActivity implements GLSurfa
                 new Runnable() {
                   @Override
                   public void run() {
+                    debugPanel.updateText();
                     fitToScanView.setVisibility(View.VISIBLE);
                   }});
       }
@@ -378,6 +406,8 @@ public class AugmentedImageActivity extends AppCompatActivity implements GLSurfa
       Log.e(TAG, "Exception on the OpenGL thread", t);
     }
   }
+
+
 
   private void configureSession() {
     Config config = new Config(session);
@@ -413,7 +443,7 @@ public class AugmentedImageActivity extends AppCompatActivity implements GLSurfa
     // * doesn't require images to be packaged in apk.
     if (useSingleImage) {
 
-      String name = "rabbit.png";
+      String name = "default.jpg";
 //      Bitmap augmentedImageBitmap = loadAugmentedImageBitmap("default.jpg");
       Bitmap augmentedImageBitmap1 = loadAugmentedImageBitmap("7x7_1000-0.jpg");
 //      Bitmap augmentedImageBitmap2 = loadAugmentedImageBitmap("7x7_1000-1.jpg");

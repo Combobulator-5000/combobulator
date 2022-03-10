@@ -358,8 +358,6 @@ public class AugmentedImageActivity extends AppCompatActivity implements GLSurfa
       localizer.update(frame, session, true);
 
 
-
-
       // Keep the screen unlocked while tracking, but allow it to lock when tracking stops.
       trackingStateHelper.updateKeepScreenOnFlag(camera.getTrackingState());
 
@@ -385,10 +383,8 @@ public class AugmentedImageActivity extends AppCompatActivity implements GLSurfa
         Pose cameraAbsPose = localizer.convertToAbsPose(camera.getPose());
         debugPanel.setLocation(cameraAbsPose);
 
-        Pose targetLocation = localizer.convertToFramePose(target.getLocation());
-        
         if(isNavigating){
-          drawNavigationArrow(projmtx, viewmtx, cameraAbsPose, targetLocation, colorCorrectionRgba);
+          drawNavigationArrow(projmtx, viewmtx, camera.getPose(), localizer.convertToFramePose(target.getLocation()), colorCorrectionRgba);
         }
 
         this.runOnUiThread(
@@ -440,10 +436,10 @@ public class AugmentedImageActivity extends AppCompatActivity implements GLSurfa
     }
   }
 
-  private void drawNavigationArrow(float[] projmtx, float[] viewmtx, Pose cameraAbsPose, Pose targetAbsPose, float[] colorCorrectionRgba) {
+  private void drawNavigationArrow(float[] projmtx, float[] viewmtx, Pose cameraRelPose, Pose targetRelPose, float[] colorCorrectionRgba) {
 
     augmentedImageRenderer.drawNavigationArrow(
-            viewmtx, projmtx, cameraAbsPose, targetAbsPose, colorCorrectionRgba);
+            viewmtx, projmtx, cameraRelPose, targetRelPose, colorCorrectionRgba);
   }
 
   private boolean setupAugmentedImageDatabase(Config config) {

@@ -22,6 +22,10 @@ class AugmentedImagesLocalizer(private val workspace: Workspace) {
         return currentAbsTransform!!.compose(framePose)
     }
 
+    fun convertToFramePose(absPose : Pose) : Pose {
+        return currentAbsTransform!!.inverse().compose(absPose)
+    }
+
     fun update(frame : Frame, session : Session, attemptCalibration : Boolean = true) {
         if (attemptCalibration) updateCalibrationMap(frame, session)
 

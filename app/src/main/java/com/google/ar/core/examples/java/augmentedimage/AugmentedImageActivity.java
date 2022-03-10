@@ -384,9 +384,11 @@ public class AugmentedImageActivity extends AppCompatActivity implements GLSurfa
 
         Pose cameraAbsPose = localizer.convertToAbsPose(camera.getPose());
         debugPanel.setLocation(cameraAbsPose);
+
+        Pose targetLocation = localizer.convertToFramePose(target.getLocation());
         
         if(isNavigating){
-          drawNavigationArrow(projmtx, viewmtx, cameraAbsPose, target.getLocation(), colorCorrectionRgba);
+          drawNavigationArrow(projmtx, viewmtx, cameraAbsPose, targetLocation, colorCorrectionRgba);
         }
 
         this.runOnUiThread(

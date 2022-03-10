@@ -129,15 +129,15 @@ public class AugmentedImageRenderer {
 
   public void drawNavigationArrow(float[] viewMatrix,
                                   float[] projectionMatrix,
-                                  Pose cameraAbsPose,
-                                  Pose targetAbsPose,
+                                  Pose cameraRelPose,
+                                  Pose targetRelPose,
                                   float[] colorCorrectionRgba){
 
     float[] modelMatrix = new float[16];
     // render arrow to guide user
-    Pose arrowModelLocalOffset = cameraAbsPose.compose(Pose.makeTranslation(0, 0, -1));
+    Pose arrowModelLocalOffset = cameraRelPose.compose(Pose.makeTranslation(0, 0, -1));
 
-    float[] targetToCamera = targetAbsPose.extractTranslation().inverse().compose(cameraAbsPose).getTranslation();
+    float[] targetToCamera = targetRelPose.extractTranslation().inverse().compose(cameraRelPose).getTranslation();
     targetToCamera[1] = 0; // only consider x/z component of displacement
 
     Pose cameraFacingPose = arrowModelLocalOffset.extractTranslation().compose(rotateBetween(ARROW_NATIVE_ORIENTATION, targetToCamera));

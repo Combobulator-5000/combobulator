@@ -115,6 +115,8 @@ public class AugmentedImageActivity extends AppCompatActivity implements GLSurfa
 
   private Workspace workspace;
   private AugmentedImagesLocalizer localizer;
+  private boolean isNavigating = false;
+  private DatabaseObject target;
 
   private final Classifier classifier = new Classifier();
 
@@ -346,10 +348,10 @@ public class AugmentedImageActivity extends AppCompatActivity implements GLSurfa
       // If a request to classify an image is pending, act on it
       if(Classifier.Companion.getRequestHandler().poll()){
         Image image = frame.acquireCameraImage();
-        DatabaseObject target = classifier.evaluate(image);
+        target = classifier.evaluate(image);
 
         debugPanel.setTarget(target);
-
+        isNavigating = true;
         image.close();
       }
       // Attempt to update current position based on known locations of augmented images
@@ -382,6 +384,10 @@ public class AugmentedImageActivity extends AppCompatActivity implements GLSurfa
 
         Pose cameraAbsPose = localizer.convertToAbsPose(camera.getPose());
         debugPanel.setLocation(cameraAbsPose);
+        
+        if(isNavigating){
+          drawNavigationArrow(projmtx, viewmtx, cameraAbsPose, target.getLocation(), colorCorrectionRgba);
+        }
 
         this.runOnUiThread(
                 new Runnable() {
@@ -430,6 +436,12 @@ public class AugmentedImageActivity extends AppCompatActivity implements GLSurfa
                 viewmtx, projmtx, augmentedImage, centerAnchor, colorCorrectionRgba);
       }
     }
+  }
+
+  private void drawNavigationArrow(float[] projmtx, float[] viewmtx, Pose cameraAbsPose, Pose targetAbsPose, float[] colorCorrectionRgba) {
+
+    augmentedImageRenderer.drawNavigationArrow(
+            viewmtx, projmtx, cameraAbsPose, targetAbsPose, colorCorrectionRgba);
   }
 
   private boolean setupAugmentedImageDatabase(Config config) {

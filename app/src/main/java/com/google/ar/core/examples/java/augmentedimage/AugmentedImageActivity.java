@@ -384,7 +384,25 @@ public class AugmentedImageActivity extends AppCompatActivity implements GLSurfa
         debugPanel.setLocation(cameraAbsPose);
 
         if(isNavigating){
-          drawNavigationArrow(projmtx, viewmtx, camera.getPose(), localizer.convertToFramePose(target.getLocation()), colorCorrectionRgba);
+          Pose targetPose = localizer.convertToFramePose(target.getLocation());
+          Pose cameraPose = camera.getPose();
+
+          // Check if we have arrived near the destination
+          float dx = targetPose.tx() - cameraPose.tx();
+          float dy = targetPose.ty() - cameraPose.ty();
+          float dz = targetPose.tz() - cameraPose.tz();
+
+          // If within `targetDistance` meters of target, inform user that navigation has finished
+          double targetDistance = 0.1;
+          double distance = Math.sqrt(dx*dx + dy*dy + dz*dz);
+
+          if (distance <  targetDistance) {
+            messageSnackbarHelper.showMessage(this,"Target found!");
+          }
+          else {
+            messageSnackbarHelper.showMessage(this, "Tracking location for: " + target.getName());
+            drawNavigationArrow(projmtx, viewmtx, cameraPose, targetPose, colorCorrectionRgba);
+          }
         }
 
         this.runOnUiThread(

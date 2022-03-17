@@ -22,11 +22,13 @@ import com.google.ar.core.Pose;
 import com.google.ar.core.examples.java.common.rendering.ObjectRenderer;
 import com.google.ar.core.examples.java.common.rendering.ObjectRenderer.BlendMode;
 import java.io.IOException;
+import java.util.Arrays;
 
 /** Renders an augmented image. */
 public class AugmentedImageRenderer {
   private static final String TAG = "AugmentedImageRenderer";
 
+  private static final float[] ARROW_NATIVE_ORIENTATION = {-1, 0, 0};
   private static final float TINT_INTENSITY = 0.1f;
   private static final float TINT_ALPHA = 1.0f;
   private static final int[] TINT_COLORS_HEX = {
@@ -38,6 +40,8 @@ public class AugmentedImageRenderer {
   private final ObjectRenderer imageFrameUpperRight = new ObjectRenderer();
   private final ObjectRenderer imageFrameLowerLeft = new ObjectRenderer();
   private final ObjectRenderer imageFrameLowerRight = new ObjectRenderer();
+
+  private final ObjectRenderer arrowRenderer = new ObjectRenderer();
 
   public AugmentedImageRenderer() {}
 
@@ -62,6 +66,11 @@ public class AugmentedImageRenderer {
         context, "models/frame_lower_right.obj", "models/frame_base.png");
     imageFrameLowerRight.setMaterialProperties(0.0f, 3.5f, 1.0f, 6.0f);
     imageFrameLowerRight.setBlendMode(BlendMode.AlphaBlending);
+
+    arrowRenderer.createOnGlThread(
+            context, "models/Arrow.obj", "models/Arrow.png");
+    arrowRenderer.setMaterialProperties(0.0f, 3.5f, 1.0f, 6.0f);
+    arrowRenderer.setBlendMode(BlendMode.AlphaBlending);
   }
 
   public void draw(
@@ -70,7 +79,7 @@ public class AugmentedImageRenderer {
       AugmentedImage augmentedImage,
       Anchor centerAnchor,
       float[] colorCorrectionRgba) {
-    float[] tintColor =
+      float[] tintColor =
         convertHexToColor(TINT_COLORS_HEX[augmentedImage.getIndex() % TINT_COLORS_HEX.length]);
 
     Pose[] localBoundaryPoses = {
@@ -118,11 +127,72 @@ public class AugmentedImageRenderer {
     imageFrameLowerLeft.draw(viewMatrix, projectionMatrix, colorCorrectionRgba, tintColor);
   }
 
+  public void drawNavigationArrow(float[] viewMatrix,
+                                  float[] projectionMatrix,
+                                  Pose cameraRelPose,
+                                  Pose targetRelPose,
+                                  float[] colorCorrectionRgba){
+
+    float[] modelMatrix = new float[16];
+    // render arrow to guide user
+    Pose arrowModelLocalOffset = cameraRelPose.compose(Pose.makeTranslation(0, 0, -1));
+
+    float[] targetToCamera = targetRelPose.extractTranslation().inverse().compose(cameraRelPose).getTranslation();
+//    targetToCamera[1] = 0; // only consider x/z component of displacement
+
+    Pose cameraFacingPose = arrowModelLocalOffset.extractTranslation().compose(rotateBetween(ARROW_NATIVE_ORIENTATION, targetToCamera));
+
+    cameraFacingPose.toMatrix(modelMatrix, 0);
+    arrowRenderer.updateModelMatrix(modelMatrix, 0.05f);
+    arrowRenderer.draw(viewMatrix, projectionMatrix, colorCorrectionRgba);
+  }
+
   private static float[] convertHexToColor(int colorHex) {
     // colorHex is in 0xRRGGBB format
     float red = ((colorHex & 0xFF0000) >> 16) / 255.0f * TINT_INTENSITY;
     float green = ((colorHex & 0x00FF00) >> 8) / 255.0f * TINT_INTENSITY;
     float blue = (colorHex & 0x0000FF) / 255.0f * TINT_INTENSITY;
     return new float[] {red, green, blue, TINT_ALPHA};
+  }
+
+  /**
+   * Returns a pose rotating about the origin so that the point {@code from} is rotated to be
+   * colinear with the origin and {@code to}.  Rotation takes the shortest path.
+   */
+  private static Pose rotateBetween(float[] fromRaw, float[] toRaw) {
+    float[] from = Arrays.copyOf(fromRaw, 3);
+    normalize(from);
+    float[] to = Arrays.copyOf(toRaw, 3);
+    normalize(to);
+
+    float[] cross = new float[3];
+    cross[0] = from[1]*to[2] - from[2]*to[1];
+    cross[1] = from[2]*to[0] - from[0]*to[2];
+    cross[2] = from[0]*to[1] - from[1]*to[0];
+    float dot = from[0]*to[0] + from[1]*to[1] + from[2]*to[2];
+    float angle = (float)Math.atan2(norm(cross), dot);
+    normalize(cross);
+
+    float sinhalf = (float)Math.sin(angle/2.0f);
+    float coshalf = (float)Math.cos(angle/2.0f);
+
+    return Pose.makeRotation(cross[0]*sinhalf, cross[1]*sinhalf, cross[2]*sinhalf, coshalf);
+  }
+
+  /** Returns the 2-norm of the input array. */
+  private static float norm(float[] in) {
+    float sum = 0;
+    for (float f : in) {
+      sum += f * f;
+    }
+    return (float)Math.sqrt(sum);
+  }
+
+  /** Normalizes the input array in-place. */
+  private static void normalize(float[] in) {
+    float scale = 1/norm(in);
+    for (int i=0; i<in.length; ++i) {
+      in[i] *= scale;
+    }
   }
 }

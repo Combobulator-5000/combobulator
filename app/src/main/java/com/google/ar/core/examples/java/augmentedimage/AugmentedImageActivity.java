@@ -28,8 +28,6 @@ import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
-import android.widget.Switch;
-import android.widget.TextView;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import com.bumptech.glide.Glide;
@@ -102,16 +100,14 @@ public class AugmentedImageActivity extends AppCompatActivity implements GLSurfa
 
   private boolean shouldConfigureSession = false;
 
+  private final double targetDistance = 0.1;
+
   // Other UI elements
-  private DebugPanel debugPanel;
+  private UI ui;
 
   // Augmented image configuration and rendering.
   // Load a single image (true) or a pre-generated image database (false).
   private final boolean useSingleImage = true;
-  // Augmented image and its associated center pose anchor, keyed by index of the augmented image in
-  // the
-  // database.
-//  private final Map<Integer, Pair<AugmentedImage, Anchor>> augmentedImageMap = new HashMap<>();
 
   private Workspace workspace;
   private AugmentedImagesLocalizer localizer;
@@ -132,6 +128,7 @@ public class AugmentedImageActivity extends AppCompatActivity implements GLSurfa
       for (int i = 1; i <= 3; i++) {
         @SuppressLint("DefaultLocale") String filename = String.format("classifier_test_images/%s%d.jpg", name, i);
         obj.addAssetImage(filename, this);
+        obj.setLocation(Pose.makeTranslation(0.5f, 1.3f, 0.75f));
       }
       objects.add(obj);
       Log.d("Classifier", obj.toString());
@@ -146,7 +143,10 @@ public class AugmentedImageActivity extends AppCompatActivity implements GLSurfa
   @Override
   protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
-    setContentView(R.layout.activity_main);
+
+    ui = new UI(this);
+    ui.setMinDistance(targetDistance);
+    surfaceView = ui.getSurfaceView();
 
     // Load & enable OpenCV
     if (!OpenCVLoader.initDebug()) {
@@ -157,7 +157,6 @@ public class AugmentedImageActivity extends AppCompatActivity implements GLSurfa
     Thread dbsetup = new Thread(this::setupObjectDatabase);
     dbsetup.start();
 
-    surfaceView = findViewById(R.id.surfaceview);
     displayRotationHelper = new DisplayRotationHelper(/*context=*/ this);
 
     // Set up renderer.
@@ -177,13 +176,8 @@ public class AugmentedImageActivity extends AppCompatActivity implements GLSurfa
     installRequested = false;
 
 
-    workspace= new Workspace("workspaces/default.json", this);
+    workspace = new Workspace("workspaces/default.json", this);
     localizer = new AugmentedImagesLocalizer(workspace);
-
-    debugPanel = new DebugPanel(this);
-
-    Button classifyButton = findViewById(R.id.classifyButton);
-    classifyButton.setOnClickListener(Classifier.Companion.getRequestHandler());
   }
 
   @Override
@@ -264,7 +258,7 @@ public class AugmentedImageActivity extends AppCompatActivity implements GLSurfa
     surfaceView.onResume();
     displayRotationHelper.onResume();
 
-    fitToScanView.setVisibility(View.VISIBLE);
+    ui.setFitToScanVisibility(View.VISIBLE);
   }
 
   @Override
@@ -338,24 +332,23 @@ public class AugmentedImageActivity extends AppCompatActivity implements GLSurfa
 
       // Obtain the current frame from ARSession. When the configuration is set to
       // UpdateMode.BLOCKING (it is by default), this will throttle the rendering to the
-      // camera framerate.
+      // camera frame rate.
       Frame frame = session.update();
       Camera camera = frame.getCamera();
 
-
-
-
-      // If a request to classify an image is pending, act on it
-      if(Classifier.Companion.getRequestHandler().poll()){
+      if(ui.classifyRequestPending()){
         Image image = frame.acquireCameraImage();
         target = classifier.evaluate(image);
 
-        debugPanel.setTarget(target);
+        ui.setTarget(target);
         isNavigating = true;
         image.close();
       }
       // Attempt to update current position based on known locations of augmented images
       localizer.update(frame, session, true);
+
+      ui.setPositionCalibrated(localizer.getCalibrated());
+      ui.updateDebugText();
 
 
       // Keep the screen unlocked while tracking, but allow it to lock when tracking stops.
@@ -381,7 +374,7 @@ public class AugmentedImageActivity extends AppCompatActivity implements GLSurfa
         drawAugmentedImages(projmtx, viewmtx, colorCorrectionRgba);
 
         Pose cameraAbsPose = localizer.convertToAbsPose(camera.getPose());
-        debugPanel.setLocation(cameraAbsPose);
+        ui.setLocation(cameraAbsPose);
 
         if(isNavigating){
           Pose targetPose = localizer.convertToFramePose(target.getLocation());
@@ -393,11 +386,11 @@ public class AugmentedImageActivity extends AppCompatActivity implements GLSurfa
           float dz = targetPose.tz() - cameraPose.tz();
 
           // If within `targetDistance` meters of target, inform user that navigation has finished
-          double targetDistance = 0.1;
           double distance = Math.sqrt(dx*dx + dy*dy + dz*dz);
+          ui.updateTrackingProgress(distance);
 
           if (distance <  targetDistance) {
-            messageSnackbarHelper.showMessage(this,"Target found!");
+            targetReached();
           }
           else {
             messageSnackbarHelper.showMessage(this, "Tracking location for: " + target.getName());
@@ -405,22 +398,9 @@ public class AugmentedImageActivity extends AppCompatActivity implements GLSurfa
           }
         }
 
-        this.runOnUiThread(
-                new Runnable() {
-                  @Override
-                  public void run() {
-                    debugPanel.updateText();
-                    fitToScanView.setVisibility(View.GONE);
-                  }});
+        ui.setFitToScanVisibility(View.GONE);
       } else {
-        // Show the prompt to scan image if we are not tracking any anchors
-        this.runOnUiThread(
-                new Runnable() {
-                  @Override
-                  public void run() {
-                    debugPanel.updateText();
-                    fitToScanView.setVisibility(View.VISIBLE);
-                  }});
+        ui.setFitToScanVisibility(View.VISIBLE);
       }
 
     } catch (Throwable t) {
@@ -430,6 +410,16 @@ public class AugmentedImageActivity extends AppCompatActivity implements GLSurfa
   }
 
 
+  void targetReached() {
+    messageSnackbarHelper.showMessage(this,"Target found!");
+
+    // stop tracking
+    isNavigating = false;
+    target = null;
+
+    // reset UI
+    ui.setTarget(null);
+  }
 
   private void configureSession() {
     Config config = new Config(session);

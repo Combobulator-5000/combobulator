@@ -19,7 +19,7 @@
     android:id="@+id/layout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:backgroundTint="#D2FFFFFF"
+    android:backgroundTint="#00FFFFFF"
     android:visibility="visible"
     app:layout_wrapBehaviorInParent="skipped"
     tools:context="com.google.ar.core.apps.augmentedimage.AugmentedImageActivity">
@@ -38,12 +38,74 @@
       android:layout_width="0dp"
       android:layout_height="0dp"
       android:scaleType="fitCenter"
+      android:visibility="invisible"
       app:layout_constraintBottom_toBottomOf="parent"
       app:layout_constraintEnd_toEndOf="parent"
       app:layout_constraintHorizontal_bias="1.0"
       app:layout_constraintStart_toStartOf="parent"
       app:layout_constraintTop_toTopOf="parent"
       app:layout_constraintVertical_bias="0.0" />
+
+  <LinearLayout
+      android:id="@+id/linearLayout"
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:background="#9F5C5C"
+      android:orientation="vertical"
+      app:layout_constraintEnd_toEndOf="parent"
+      app:layout_constraintStart_toStartOf="parent"
+      app:layout_constraintTop_toTopOf="parent">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+      <CheckBox
+          android:id="@+id/calibratedCheckbox"
+          android:layout_width="wrap_content"
+          android:layout_height="wrap_content"
+          android:layout_weight="1"
+          android:clickable="false"
+          android:text="Position Calibrated" />
+
+      <ImageButton
+          android:id="@+id/calibHelpButton"
+          android:layout_width="wrap_content"
+          android:layout_height="wrap_content"
+          android:layout_weight="1"
+          android:src="@android:drawable/ic_menu_help" />
+
+
+      <CheckBox
+          android:id="@+id/scanCheckbox"
+          android:layout_width="wrap_content"
+          android:layout_height="wrap_content"
+          android:layout_weight="1"
+          android:clickable="false"
+          android:text="Object Scanned" />
+
+      <ImageButton
+          android:id="@+id/scanHelpButton"
+          android:layout_width="wrap_content"
+          android:layout_height="wrap_content"
+          android:layout_weight="1"
+          android:src="@android:drawable/ic_menu_help" />
+
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/trackingText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/no_target" />
+
+    <ProgressBar
+        android:id="@+id/trackingProgress"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
+  </LinearLayout>
 
   <androidx.constraintlayout.widget.ConstraintLayout
       android:id="@+id/debugPanel"
@@ -53,7 +115,7 @@
       app:layout_constraintBottom_toBottomOf="@+id/surfaceview"
       app:layout_constraintEnd_toEndOf="parent"
       app:layout_constraintStart_toStartOf="parent"
-      app:layout_constraintTop_toTopOf="parent">
+      app:layout_constraintTop_toBottomOf="@+id/linearLayout">
 
     <ImageView
         android:id="@+id/background"
@@ -93,8 +155,10 @@
         android:textSize="18sp"
         app:layout_constraintBottom_toBottomOf="@+id/background"
         app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="1.0"
         app:layout_constraintStart_toStartOf="@+id/background"
-        app:layout_constraintTop_toBottomOf="@+id/mainDebugText" />
+        app:layout_constraintTop_toBottomOf="@+id/mainDebugText"
+        app:layout_constraintVertical_bias="0.0" />
 
   </androidx.constraintlayout.widget.ConstraintLayout>
 

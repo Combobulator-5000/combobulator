@@ -15,7 +15,7 @@ import java.io.InputStream
 class DatabaseObject(val name : String){
 
     // is this absolute pose? if so pog champion
-    val location : Pose = Pose.makeTranslation(0f,0f,0f)
+    var location : Pose = Pose.makeTranslation(0f,0f,0f)
     val allDescriptors : MutableList<Mat> = ArrayList()
 
     // Below: methods to add reference image data (in multiple formats) to the database object

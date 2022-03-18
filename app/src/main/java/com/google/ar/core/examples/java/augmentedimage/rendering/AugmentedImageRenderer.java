@@ -137,8 +137,8 @@ public class AugmentedImageRenderer {
     // render arrow to guide user
     Pose arrowModelLocalOffset = cameraRelPose.compose(Pose.makeTranslation(0, 0, -1));
 
-    float[] targetToCamera = targetRelPose.inverse().compose(cameraRelPose);
-    Pose cameraFacingPose = arrowModelLocalOffset.compose(rotateBetween(ARROW_NATIVE_ORIENTATION, targetToCamera));
+    float[] targetToCamera = targetRelPose.extractTranslation().inverse().compose(cameraRelPose).getTranslation();
+    Pose cameraFacingPose = arrowModelLocalOffset.extractTranslation().compose(rotateBetween(ARROW_NATIVE_ORIENTATION, targetToCamera));
 
     cameraFacingPose.toMatrix(modelMatrix, 0);
     arrowRenderer.updateModelMatrix(modelMatrix, 0.05f);

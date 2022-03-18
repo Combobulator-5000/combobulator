@@ -18,11 +18,7 @@ import java.lang.NullPointerException
 
 class Classifier {
 
-    companion object{
-        val requestHandler = ClassifyRequestHandler()
-    }
-
-    val objects : MutableList<DatabaseObject> = ArrayList()
+    private val objects : MutableList<DatabaseObject> = ArrayList()
 
     fun addObjects(newObjects : List<DatabaseObject>) {
         objects.addAll(newObjects)
@@ -71,24 +67,5 @@ class Classifier {
 
         Log.d("Classifier", "good matches: $goodMatchesCount")
         return goodMatchesCount
-    }
-
-    // Handles capturing button clicks and passing the info between UI thread and the main
-    // activity's onDrawFrame method
-    class ClassifyRequestHandler : View.OnClickListener {
-
-        var tapQueued = false
-
-        @Synchronized
-        override fun onClick(p0: View?) {
-            tapQueued = true
-        }
-
-        @Synchronized
-        fun poll() : Boolean {
-            val temp = tapQueued
-            tapQueued = false
-            return temp
-        }
     }
 }

@@ -15,5 +15,7 @@
    limitations under the License.
 -->
 <resources>
-  <string name="app_name">AugImg Java</string>
+  <string name="app_name">Combobulator 5000</string>
+  <string name="no_target">No current target</string>
+  <string name="tracking">Tracking: %1$s</string>
 </resources>

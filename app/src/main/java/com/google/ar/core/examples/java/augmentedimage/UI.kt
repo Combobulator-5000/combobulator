@@ -1,6 +1,7 @@
 package com.google.ar.core.examples.java.augmentedimage
 
 import android.annotation.SuppressLint
+import android.content.res.Resources
 import android.view.View
 import android.widget.CompoundButton
 import com.google.ar.core.Pose
@@ -17,6 +18,8 @@ class UI(private val activity: AugmentedImageActivity) {
 
     // Shortcuts to elements that the activity needs access to
     val surfaceView = ui.surfaceview
+
+    val res : Resources = activity.resources
 
     private val classifyRequestQueue = ClassifyRequestHandler()
 
@@ -56,10 +59,10 @@ class UI(private val activity: AugmentedImageActivity) {
 
             if (target == null) {
                 ui.scanCheckbox.isChecked = false
-                ui.trackingText.text = R.string.no_target.toString()
+                ui.trackingText.text = res.getString(R.string.no_target)
             } else {
                 ui.scanCheckbox.isChecked = true
-                ui.trackingText.text = String.format(R.string.tracking.toString(), target.name)
+                ui.trackingText.text = res.getString(R.string.tracking, target.name)
             }
         }
     }

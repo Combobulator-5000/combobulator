@@ -26,7 +26,6 @@ import android.opengl.GLSurfaceView;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
-import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
@@ -43,7 +42,8 @@ import com.google.ar.core.Pose;
 import com.google.ar.core.Session;
 import com.google.ar.core.TrackingState;
 import com.google.ar.core.examples.java.augmentedimage.classifier.Classifier;
-import com.google.ar.core.examples.java.augmentedimage.classifier.DatabaseObject;
+import com.google.ar.core.examples.java.augmentedimage.database.ChangeListener;
+import com.google.ar.core.examples.java.augmentedimage.database.TrackedItem;
 import com.google.ar.core.examples.java.augmentedimage.localization.AugmentedImagesLocalizer;
 import com.google.ar.core.examples.java.augmentedimage.localization.Workspace;
 import com.google.ar.core.examples.java.augmentedimage.rendering.AugmentedImageRenderer;
@@ -69,6 +69,13 @@ import java.util.List;
 
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
+
+import io.realm.Realm;
+import io.realm.mongodb.App;
+import io.realm.mongodb.AppConfiguration;
+import io.realm.mongodb.Credentials;
+import io.realm.mongodb.User;
+import io.realm.mongodb.sync.SyncConfiguration;
 
 /**
  * This app extends the HelloAR Java app to include image tracking functionality.
@@ -112,31 +119,59 @@ public class AugmentedImageActivity extends AppCompatActivity implements GLSurfa
   private Workspace workspace;
   private AugmentedImagesLocalizer localizer;
   private boolean isNavigating = false;
-  private DatabaseObject target;
+  private TrackedItem target;
 
   private final Classifier classifier = new Classifier();
 
-  protected void setupObjectDatabase() {
-    List<DatabaseObject> objects = new ArrayList<>();
+  private App app;
 
-    DatabaseObject earth = new DatabaseObject("earth");
-    earth.addAssetImage("classifier_test_images/default.jpg", this);
-    objects.add(earth);
+  // This is an authenticated connection to the Realm Sync instance;
+  // it can be used to store or retrieve data.
+  private Realm realm;
+
+  protected void setupDatabase() {
+    Realm.init(this);
+    String appID = "combobulator9k-qovg";
+    app = new App(new AppConfiguration.Builder(appID).build());
+    Credentials credentials = Credentials.anonymous();
+    app.loginAsync(credentials, result -> {
+      if (result.isSuccess()) {
+        Log.v("Realm", "Database authenticated.");
+        User user = app.currentUser();
+        String paritionValue = "plab";
+        SyncConfiguration config = new SyncConfiguration.Builder(user, paritionValue).build();
+        realm = Realm.getInstance(config);
+
+        new ChangeListener(realm).run();
+      } else {
+        Log.e("Realm", "Failed to authenticate: " + result.getError());
+      }
+    });
+
+    // List<TrackedItem> objects = new ArrayList<>();
+
+    // TrackedItem earth = new TrackedItem("earth");
+    // earth.addAssetImage("classifier_test_images/default.jpg", this);
+    // objects.add(earth);
 
     for(String name : Arrays.asList("fork", "scissors", "pliers")) {
-      DatabaseObject obj = new DatabaseObject(name);
-      for (int i = 1; i <= 3; i++) {
-        @SuppressLint("DefaultLocale") String filename = String.format("classifier_test_images/%s%d.jpg", name, i);
-        obj.addAssetImage(filename, this);
-        obj.setLocation(Pose.makeTranslation(0.5f, 1.3f, 0.75f));
-      }
-      objects.add(obj);
-      Log.d("Classifier", obj.toString());
+
     }
 
-    synchronized (classifier) {
-      classifier.addObjects(objects);
-    }
+    // for(String name : Arrays.asList("fork", "scissors", "pliers")) {
+    //   TrackedItem obj = new TrackedItem(name);
+    //   for (int i = 1; i <= 3; i++) {
+    //     @SuppressLint("DefaultLocale") String filename = String.format("classifier_test_images/%s%d.jpg", name, i);
+    //     obj.addAssetImage(filename, this);
+    //     obj.setLocation(Pose.makeTranslation(0.5f, 1.3f, 0.75f));
+    //   }
+    //   objects.add(obj);
+    //   Log.d("Classifier", obj.toString());
+    // }
+
+    // synchronized (classifier) {
+    //   classifier.addObjects(objects);
+    // }
   }
 
 
@@ -154,8 +189,7 @@ public class AugmentedImageActivity extends AppCompatActivity implements GLSurfa
       return;
     }
 
-    Thread dbsetup = new Thread(this::setupObjectDatabase);
-    dbsetup.start();
+    setupDatabase();
 
     displayRotationHelper = new DisplayRotationHelper(/*context=*/ this);
 
@@ -336,6 +370,9 @@ public class AugmentedImageActivity extends AppCompatActivity implements GLSurfa
       Frame frame = session.update();
       Camera camera = frame.getCamera();
 
+      // TODO: a similar structure to this would need to be used in an admin workflow.
+      // If the ui has a takeImageRequestPending (or something), the image here needs to
+      // be pushed to the database
       if(ui.classifyRequestPending()){
         Image image = frame.acquireCameraImage();
         target = classifier.evaluate(image);

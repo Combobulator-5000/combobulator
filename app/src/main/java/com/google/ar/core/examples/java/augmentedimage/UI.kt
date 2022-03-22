@@ -5,7 +5,7 @@ import android.content.res.Resources
 import android.view.View
 import android.widget.CompoundButton
 import com.google.ar.core.Pose
-import com.google.ar.core.examples.java.augmentedimage.classifier.DatabaseObject
+import com.google.ar.core.examples.java.augmentedimage.database.TrackedItem
 import com.google.ar.core.examples.java.augmentedimage.databinding.ActivityMainBinding
 
 class UI(private val activity: AugmentedImageActivity) {
@@ -25,7 +25,7 @@ class UI(private val activity: AugmentedImageActivity) {
 
     // Data
     var location : Pose? = null
-    private var target : DatabaseObject? = null
+    private var target : TrackedItem? = null
     var miscData : MutableMap<String, String> = HashMap()
     var miscDataUpdated = false
     var maxDistance = 1.0
@@ -49,7 +49,7 @@ class UI(private val activity: AugmentedImageActivity) {
         updateDebugText()
     }
 
-    fun setTarget(target : DatabaseObject?) {
+    fun setTarget(target : TrackedItem?) {
         this.target = target
 
         activity.runOnUiThread {

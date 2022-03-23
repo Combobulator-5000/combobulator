@@ -4,25 +4,33 @@ import android.content.Context
 import com.google.ar.core.Pose
 import com.google.ar.core.examples.java.augmentedimage.OpenCVHelpers
 import com.google.ar.core.examples.java.augmentedimage.classifier.Classifier
+import io.realm.RealmList
 import io.realm.RealmObject
 import io.realm.annotations.Ignore
 import org.opencv.core.Mat
 
-class TrackedItem(val name : String, private val rawLocation : FloatArray) : RealmObject() {
+// I don't like that these fields are nilable, but Realm requires there to be an empty
+// constructor in order to populate this object with (i'm guessing) reflection
+open class TrackedItem(var name : String = "Uninitialized object!",
+                  private var rawLocation : RealmList<Float>? = null,
+                  private var rawImages : RealmList<ImageBytes>? = null) : RealmObject() {
 
     // is this absolute pose? if so pog champion
     @Ignore
     var location : Pose = Pose.makeTranslation(0f,0f,0f)
-    val images : MutableList<Mat> = ArrayList();
+    @Ignore
+    var images : MutableList<Mat> = ArrayList();
     // val allDescriptors : MutableList<Mat> = ArrayList()
 
-    public TrackedItem(name : String, location : Pose, images : MutableList<Mat>) {
-
+    init {
+        location = DBUtil.deserialize_pose(rawLocation!!)
+        images = rawImages!!.map { img -> DBUtil.deserialize_mat(img) }.toMutableList()
     }
 
-    protected TrackedItem() {
-
-    }
+    constructor(name : String, location : Pose, images : MutableList<Mat>)
+        : this(name,
+        DBUtil.serialize(location),
+        images.map { img -> DBUtil.serialize(img) } as RealmList<ImageBytes>) {}
 
     // TODO:
     // Make database background listener that populates Classifier.allDescriptors as it goes

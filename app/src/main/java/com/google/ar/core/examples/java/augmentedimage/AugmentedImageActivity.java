@@ -17,6 +17,7 @@
 package com.google.ar.core.examples.java.augmentedimage;
 
 import android.annotation.SuppressLint;
+import android.app.Activity;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.media.Image;
@@ -60,12 +61,16 @@ import com.google.ar.core.exceptions.UnavailableSdkTooOldException;
 import com.google.ar.core.exceptions.UnavailableUserDeclinedInstallationException;
 
 import org.opencv.android.OpenCVLoader;
+import org.opencv.core.Mat;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.FutureTask;
 
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
@@ -131,7 +136,7 @@ public class AugmentedImageActivity extends AppCompatActivity implements GLSurfa
 
   protected void setupDatabase() {
     Realm.init(this);
-    String appID = "combobulator9k-qovg";
+    String appID = "combobulator9k-tlrvq";
     app = new App(new AppConfiguration.Builder(appID).build());
     Credentials credentials = Credentials.anonymous();
     app.loginAsync(credentials, result -> {
@@ -139,10 +144,34 @@ public class AugmentedImageActivity extends AppCompatActivity implements GLSurfa
         Log.v("Realm", "Database authenticated.");
         User user = app.currentUser();
         String paritionValue = "plab";
-        SyncConfiguration config = new SyncConfiguration.Builder(user, paritionValue).build();
+        SyncConfiguration config = new SyncConfiguration.Builder(user, paritionValue)
+                .allowQueriesOnUiThread(true)
+                .allowWritesOnUiThread(true)
+                .build();
         realm = Realm.getInstance(config);
 
         new ChangeListener(realm).run();
+
+        for(String name : Arrays.asList("fork")) {
+          Pose pose = Pose.makeTranslation(0.5f, 1.3f, 0.75f);
+          ArrayList<Mat> images = new ArrayList<Mat>();
+
+          for (int i = 1; i <= 3; i++) {
+            @SuppressLint("DefaultLocale") String filename = String.format("classifier_test_images/%s%d.jpg", name, i);
+            images.add(OpenCVHelpers.readImageMatFromAsset(filename, this));
+          }
+
+          TrackedItem item = new TrackedItem(name, pose, images);
+          realm.executeTransaction(transactionRealm -> {
+            Log.v("Realm", "pushing object");
+            transactionRealm.insert(item);
+//          transactionRealm.commitTransaction();
+          });
+        }
+
+//        FutureTask<String> task = new FutureTask(new BackgroundQuickStart(app.currentUser(), this), "Test");
+//        ExecutorService executorService = Executors.newFixedThreadPool(2);
+//        executorService.execute(task);
       } else {
         Log.e("Realm", "Failed to authenticate: " + result.getError());
       }
@@ -153,10 +182,6 @@ public class AugmentedImageActivity extends AppCompatActivity implements GLSurfa
     // TrackedItem earth = new TrackedItem("earth");
     // earth.addAssetImage("classifier_test_images/default.jpg", this);
     // objects.add(earth);
-
-    for(String name : Arrays.asList("fork", "scissors", "pliers")) {
-
-    }
 
     // for(String name : Arrays.asList("fork", "scissors", "pliers")) {
     //   TrackedItem obj = new TrackedItem(name);
@@ -172,6 +197,45 @@ public class AugmentedImageActivity extends AppCompatActivity implements GLSurfa
     // synchronized (classifier) {
     //   classifier.addObjects(objects);
     // }
+  }
+
+  public class BackgroundQuickStart implements Runnable {
+    User user;
+    Activity activity;
+
+    public BackgroundQuickStart(User user, Activity activity) {
+      this.user = user;
+      this.activity = activity;
+    }
+
+    @Override
+    public void run() {
+      String partitionValue = "plab";
+
+      SyncConfiguration config = new SyncConfiguration.Builder(
+              user,
+              partitionValue)
+              .build();
+
+      Realm backgroundThreadRealm = Realm.getInstance(config);
+
+//      for(String name : Arrays.asList("fork")) {
+//        Pose pose = Pose.makeTranslation(0.5f, 1.3f, 0.75f);
+//        ArrayList<Mat> images = new ArrayList<Mat>();
+//
+//        for (int i = 1; i <= 3; i++) {
+//          @SuppressLint("DefaultLocale") String filename = String.format("classifier_test_images/%s%d.jpg", name, i);
+//          images.add(OpenCVHelpers.readImageMatFromAsset(filename, activity));
+//        }
+//
+//        TrackedItem item = new TrackedItem(name, pose, images);
+//        backgroundThreadRealm.executeTransaction(transactionRealm -> {
+//          Log.v("Realm", "pushing object");
+//          transactionRealm.insert(item);
+////          transactionRealm.commitTransaction();
+//        });
+//      }
+    }
   }
 
 

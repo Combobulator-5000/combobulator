@@ -12,7 +12,7 @@ import org.opencv.features2d.SIFT
 import java.io.IOException
 import java.io.InputStream
 
-class DatabaseObject(val name : String){
+class TrackedItem(val name : String){
 
     // is this absolute pose? if so pog champion
     var location : Pose = Pose.makeTranslation(0f,0f,0f)

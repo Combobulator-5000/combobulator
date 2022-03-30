@@ -1,22 +1,12 @@
 package com.google.ar.core.examples.java.augmentedimage.classifier
 
-import android.R.attr
-import android.content.Context
-import android.graphics.BitmapFactory
 import android.media.Image
 import android.util.Log
-import android.view.View
 import com.google.ar.core.examples.java.augmentedimage.OpenCVHelpers
-import org.opencv.android.Utils
 import org.opencv.core.Mat
 import org.opencv.core.MatOfDMatch
-import org.opencv.core.MatOfKeyPoint
 import org.opencv.features2d.FlannBasedMatcher
-import org.opencv.features2d.SIFT
-import java.lang.NullPointerException
-import android.R.attr.path
 import java.io.*
-import java.nio.file.Files
 
 class Classifier {
 
@@ -25,16 +15,16 @@ class Classifier {
         const val DISTANCE_FACTOR = 0.85
     }
 
-    private val objects : MutableList<DatabaseObject> = ArrayList()
+    private val objects : MutableList<TrackedItem> = ArrayList()
     private val flann : FlannBasedMatcher = FlannBasedMatcher()
 
-    val allObjScores : MutableMap<DatabaseObject, List<Int>> = HashMap()
+    val allObjScores : MutableMap<TrackedItem, List<Int>> = HashMap()
 
-    fun addObjects(newObjects : List<DatabaseObject>) {
+    fun addObjects(newObjects : List<TrackedItem>) {
         objects.addAll(newObjects)
     }
 
-    fun evaluate(image : Image) : DatabaseObject {
+    fun evaluate(image : Image) : TrackedItem {
         return evaluate(OpenCVHelpers.imageToMat(image))
     }
 
@@ -54,7 +44,7 @@ class Classifier {
         flann.read(outputF.path)
     }
 
-    fun evaluate(image : Mat) : DatabaseObject {
+    fun evaluate(image : Mat) : TrackedItem {
         val descriptors = OpenCVHelpers.getDescriptors(image)
 
         // Keeping the full list here (rather than a call to maxByOrNull)
@@ -69,7 +59,7 @@ class Classifier {
     }
 
     // evaluates the
-    fun getMatchScore(targetDescriptors : Mat, obj : DatabaseObject) : Int {
+    fun getMatchScore(targetDescriptors : Mat, obj : TrackedItem) : Int {
 
         allObjScores[obj] = obj.allDescriptors.map {countMatches(targetDescriptors, it)}
 
@@ -79,19 +69,14 @@ class Classifier {
     }
 
     fun countMatches(descriptors1 : Mat, descriptors2: Mat) : Int {
+
         val matches : MutableList<MatOfDMatch> = ArrayList()
-
-
-//        FLANN_INDEX_KDTREE = 1
-//        index_params = dict(algorithm = FLANN_INDEX_KDTREE, trees = 5)
-//        search_params = dict(checks=50)   # or pass empty dictionary
-
         flann.knnMatch(descriptors1, descriptors2, matches, 2)
         Log.d("Classifier", "done")
 
         var goodMatchesCount = 0
 
-        for ((i, match) in matches.withIndex()) {
+        for (match in matches) {
             val (m,n) = match.toList()
             if (m.distance < DISTANCE_FACTOR * n.distance) {
                 goodMatchesCount+=1

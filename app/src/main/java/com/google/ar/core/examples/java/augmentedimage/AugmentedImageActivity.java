@@ -26,7 +26,6 @@ import android.opengl.GLSurfaceView;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
-import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
@@ -43,7 +42,7 @@ import com.google.ar.core.Pose;
 import com.google.ar.core.Session;
 import com.google.ar.core.TrackingState;
 import com.google.ar.core.examples.java.augmentedimage.classifier.Classifier;
-import com.google.ar.core.examples.java.augmentedimage.classifier.DatabaseObject;
+import com.google.ar.core.examples.java.augmentedimage.classifier.TrackedItem;
 import com.google.ar.core.examples.java.augmentedimage.localization.AugmentedImagesLocalizer;
 import com.google.ar.core.examples.java.augmentedimage.localization.Workspace;
 import com.google.ar.core.examples.java.augmentedimage.rendering.AugmentedImageRenderer;
@@ -63,11 +62,7 @@ import org.opencv.android.OpenCVLoader;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.file.FileSystems;
-import java.nio.file.PathMatcher;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Dictionary;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -118,7 +113,7 @@ public class AugmentedImageActivity extends AppCompatActivity implements GLSurfa
   private Classifier classifier;
   private AugmentedImagesLocalizer localizer;
   private boolean isNavigating = false;
-  private DatabaseObject target;
+  private TrackedItem target;
 
 
   protected void setupObjectDatabase() {
@@ -129,7 +124,7 @@ public class AugmentedImageActivity extends AppCompatActivity implements GLSurfa
       e.printStackTrace();
     }
 
-    List<DatabaseObject> objects = new ArrayList<>();
+    List<TrackedItem> objects = new ArrayList<>();
 
     Map<String, Integer> objCounts = new HashMap();
 //    objCounts.put("lock", 5);
@@ -141,7 +136,7 @@ public class AugmentedImageActivity extends AppCompatActivity implements GLSurfa
     objCounts.put("fork", 3);
 
     for(String name : objCounts.keySet()) {
-      DatabaseObject obj = new DatabaseObject(name);
+      TrackedItem obj = new TrackedItem(name);
 
       for (int i = 1; i <= objCounts.get(name); i++) {
         @SuppressLint("DefaultLocale") String filename = String.format("classifier_test_images/%s%d.jpg", name, i);
@@ -363,8 +358,8 @@ public class AugmentedImageActivity extends AppCompatActivity implements GLSurfa
 
         ui.setTarget(target);
 
-        Map<DatabaseObject, List<Integer>> objectScores = classifier.getAllObjScores();
-        for(DatabaseObject obj : objectScores.keySet()){
+        Map<TrackedItem, List<Integer>> objectScores = classifier.getAllObjScores();
+        for(TrackedItem obj : objectScores.keySet()){
           ui.set(obj.getName(), objectScores.get(obj));
         }
 
@@ -488,18 +483,11 @@ public class AugmentedImageActivity extends AppCompatActivity implements GLSurfa
     // * doesn't require images to be packaged in apk.
     if (useSingleImage) {
 
-      String name = "default.jpg";
-//      Bitmap augmentedImageBitmap = loadAugmentedImageBitmap("default.jpg");
-//      Bitmap augmentedImageBitmap1 = loadAugmentedImageBitmap("7x7_1000-0.jpg");
-//      Bitmap augmentedImageBitmap2 = loadAugmentedImageBitmap("7x7_1000-1.jpg");
-      Bitmap augmentedImageBitmap2 = loadAugmentedImageBitmap(name);
-//      if (augmentedImageBitmap1 == null) {
-//        return false;
-//      }
+      String name = "earth_marker.jpg";
+      Bitmap augmentedImageBitmap = loadAugmentedImageBitmap(name);
 
       augmentedImageDatabase = new AugmentedImageDatabase(session);
-//      augmentedImageDatabase.addImage("image1", augmentedImageBitmap1);
-      augmentedImageDatabase.addImage("image2", augmentedImageBitmap2);
+      augmentedImageDatabase.addImage("image2", augmentedImageBitmap);
       // If the physical size of the image is known, you can instead use:
       //     augmentedImageDatabase.addImage("image_name", augmentedImageBitmap, widthInMeters);
       // This will improve the initial detection speed. ARCore will still actively estimate the

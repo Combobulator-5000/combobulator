@@ -1,0 +1,25 @@
+%YAML:1.0
+---
+format: 3
+indexParams:
+  -
+    name: algorithm
+    type: 9 # FLANN_INDEX_TYPE_ALGORITHM
+    value: 1
+  -
+    name: trees
+    type: 4
+    value: 5
+searchParams:
+  -
+    name: checks
+    type: 4
+    value: 50
+  -
+    name: eps
+    type: 5
+    value: 0.
+  -
+    name: sorted
+    type: 8 # FLANN_INDEX_TYPE_BOOL
+    value: 1

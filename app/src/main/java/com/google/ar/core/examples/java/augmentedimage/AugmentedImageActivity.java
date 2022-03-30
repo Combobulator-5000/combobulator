@@ -63,9 +63,14 @@ import org.opencv.android.OpenCVLoader;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.FileSystems;
+import java.nio.file.PathMatcher;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Dictionary;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
@@ -110,22 +115,35 @@ public class AugmentedImageActivity extends AppCompatActivity implements GLSurfa
   private final boolean useSingleImage = true;
 
   private Workspace workspace;
+  private Classifier classifier;
   private AugmentedImagesLocalizer localizer;
   private boolean isNavigating = false;
   private DatabaseObject target;
 
-  private final Classifier classifier = new Classifier();
 
   protected void setupObjectDatabase() {
+
+    try {
+      classifier.loadMatcherParams(getAssets().open("matcher_params.yaml"));
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+
     List<DatabaseObject> objects = new ArrayList<>();
 
-    DatabaseObject earth = new DatabaseObject("earth");
-    earth.addAssetImage("classifier_test_images/default.jpg", this);
-    objects.add(earth);
+    Map<String, Integer> objCounts = new HashMap();
+//    objCounts.put("lock", 5);
+//    objCounts.put("tape measure", 6);
+//    objCounts.put("marker", 7);
+//    objCounts.put("tape", 6);
+    objCounts.put("scissors", 3);
+    objCounts.put("pliers", 3);
+    objCounts.put("fork", 3);
 
-    for(String name : Arrays.asList("fork", "scissors", "pliers")) {
+    for(String name : objCounts.keySet()) {
       DatabaseObject obj = new DatabaseObject(name);
-      for (int i = 1; i <= 3; i++) {
+
+      for (int i = 1; i <= objCounts.get(name); i++) {
         @SuppressLint("DefaultLocale") String filename = String.format("classifier_test_images/%s%d.jpg", name, i);
         obj.addAssetImage(filename, this);
         obj.setLocation(Pose.makeTranslation(0.5f, 1.3f, 0.75f));
@@ -149,11 +167,14 @@ public class AugmentedImageActivity extends AppCompatActivity implements GLSurfa
     surfaceView = ui.getSurfaceView();
 
     // Load & enable OpenCV
+    // Note that this must happen before all OpenCV operations; otherwise will get an error
+    // "No implementation found for..."
     if (!OpenCVLoader.initDebug()) {
       Log.e("opencv", "failed to load opencv");
       return;
     }
 
+    classifier = new Classifier();
     Thread dbsetup = new Thread(this::setupObjectDatabase);
     dbsetup.start();
 
@@ -162,7 +183,7 @@ public class AugmentedImageActivity extends AppCompatActivity implements GLSurfa
     // Set up renderer.
     surfaceView.setPreserveEGLContextOnPause(true);
     surfaceView.setEGLContextClientVersion(2);
-    surfaceView.setEGLConfigChooser(8, 8, 8, 8, 16, 0); // Alpha used for plane blending.
+    surfaceView.setEGLConfigChooser(8, 8, 8, 8, 16,  0); // Alpha used for plane blending.
     surfaceView.setRenderer(this);
     surfaceView.setRenderMode(GLSurfaceView.RENDERMODE_CONTINUOUSLY);
     surfaceView.setWillNotDraw(false);
@@ -341,6 +362,12 @@ public class AugmentedImageActivity extends AppCompatActivity implements GLSurfa
         target = classifier.evaluate(image);
 
         ui.setTarget(target);
+
+        Map<DatabaseObject, List<Integer>> objectScores = classifier.getAllObjScores();
+        for(DatabaseObject obj : objectScores.keySet()){
+          ui.set(obj.getName(), objectScores.get(obj));
+        }
+
         isNavigating = true;
         image.close();
       }
@@ -463,15 +490,15 @@ public class AugmentedImageActivity extends AppCompatActivity implements GLSurfa
 
       String name = "default.jpg";
 //      Bitmap augmentedImageBitmap = loadAugmentedImageBitmap("default.jpg");
-      Bitmap augmentedImageBitmap1 = loadAugmentedImageBitmap("7x7_1000-0.jpg");
+//      Bitmap augmentedImageBitmap1 = loadAugmentedImageBitmap("7x7_1000-0.jpg");
 //      Bitmap augmentedImageBitmap2 = loadAugmentedImageBitmap("7x7_1000-1.jpg");
       Bitmap augmentedImageBitmap2 = loadAugmentedImageBitmap(name);
-      if (augmentedImageBitmap1 == null) {
-        return false;
-      }
+//      if (augmentedImageBitmap1 == null) {
+//        return false;
+//      }
 
       augmentedImageDatabase = new AugmentedImageDatabase(session);
-      augmentedImageDatabase.addImage("image1", augmentedImageBitmap1);
+//      augmentedImageDatabase.addImage("image1", augmentedImageBitmap1);
       augmentedImageDatabase.addImage("image2", augmentedImageBitmap2);
       // If the physical size of the image is known, you can instead use:
       //     augmentedImageDatabase.addImage("image_name", augmentedImageBitmap, widthInMeters);

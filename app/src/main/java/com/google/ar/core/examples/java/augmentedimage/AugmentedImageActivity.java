@@ -64,10 +64,10 @@ import org.opencv.android.OpenCVLoader;
 import org.opencv.core.Mat;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.FutureTask;
@@ -256,6 +256,8 @@ public class AugmentedImageActivity extends AppCompatActivity implements GLSurfa
     surfaceView = ui.getSurfaceView();
 
     // Load & enable OpenCV
+    // Note that this must happen before all OpenCV operations; otherwise will get an error
+    // "No implementation found for..."
     if (!OpenCVLoader.initDebug()) {
       Log.e("opencv", "failed to load opencv");
       return;
@@ -276,8 +278,8 @@ public class AugmentedImageActivity extends AppCompatActivity implements GLSurfa
     fitToScanView = findViewById(R.id.image_view_fit_to_scan);
     glideRequestManager = Glide.with(this);
     glideRequestManager
-        .load(Uri.parse("file:///android_asset/fit_to_scan.png"))
-        .into(fitToScanView);
+            .load(Uri.parse("file:///android_asset/fit_to_scan.png"))
+            .into(fitToScanView);
 
     installRequested = false;
 
@@ -325,7 +327,7 @@ public class AugmentedImageActivity extends AppCompatActivity implements GLSurfa
 
         session = new Session(/* context = */ this);
       } catch (UnavailableArcoreNotInstalledException
-          | UnavailableUserDeclinedInstallationException e) {
+              | UnavailableUserDeclinedInstallationException e) {
         message = "Please install ARCore";
         exception = e;
       } catch (UnavailableApkTooOldException e) {
@@ -386,7 +388,7 @@ public class AugmentedImageActivity extends AppCompatActivity implements GLSurfa
     if (!CameraPermissionHelper.hasCameraPermission(this)) {
       Toast.makeText(
               this, "Camera permissions are needed to run this application", Toast.LENGTH_LONG)
-          .show();
+              .show();
       if (!CameraPermissionHelper.shouldShowRequestPermissionRationale(this)) {
         // Permission denied with checking "Do not ask again".
         CameraPermissionHelper.launchPermissionSettings(this);
@@ -445,11 +447,17 @@ public class AugmentedImageActivity extends AppCompatActivity implements GLSurfa
       // TODO: a similar structure to this would need to be used in an admin workflow.
       // If the ui has a takeImageRequestPending (or something), the image here needs to
       // be pushed to the database
-      if(ui.classifyRequestPending()){
+      if (ui.classifyRequestPending()) {
         Image image = frame.acquireCameraImage();
         target = classifier.evaluate(image);
 
         ui.setTarget(target);
+
+        Map<TrackedItem, List<Integer>> objectScores = classifier.getAllObjScores();
+        for (TrackedItem obj : objectScores.keySet()) {
+          ui.set(obj.getName(), objectScores.get(obj));
+        }
+
         isNavigating = true;
         image.close();
       }
@@ -478,14 +486,14 @@ public class AugmentedImageActivity extends AppCompatActivity implements GLSurfa
       final float[] colorCorrectionRgba = new float[4];
       frame.getLightEstimate().getColorCorrection(colorCorrectionRgba, 0);
 
-      if(localizer.getCalibrated()) {
+      if (localizer.getCalibrated()) {
         // Visualize augmented images.
         drawAugmentedImages(projmtx, viewmtx, colorCorrectionRgba);
 
         Pose cameraAbsPose = localizer.convertToAbsPose(camera.getPose());
         ui.setLocation(cameraAbsPose);
 
-        if(isNavigating){
+        if (isNavigating) {
           Pose targetPose = localizer.convertToFramePose(target.getLocation());
           Pose cameraPose = camera.getPose();
 
@@ -495,13 +503,12 @@ public class AugmentedImageActivity extends AppCompatActivity implements GLSurfa
           float dz = targetPose.tz() - cameraPose.tz();
 
           // If within `targetDistance` meters of target, inform user that navigation has finished
-          double distance = Math.sqrt(dx*dx + dy*dy + dz*dz);
+          double distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
           ui.updateTrackingProgress(distance);
 
-          if (distance <  targetDistance) {
+          if (distance < targetDistance) {
             targetReached();
-          }
-          else {
+          } else {
             messageSnackbarHelper.showMessage(this, "Tracking location for: " + target.getName());
             drawNavigationArrow(projmtx, viewmtx, cameraPose, targetPose, colorCorrectionRgba);
           }
@@ -520,7 +527,7 @@ public class AugmentedImageActivity extends AppCompatActivity implements GLSurfa
 
 
   void targetReached() {
-    messageSnackbarHelper.showMessage(this,"Target found!");
+    messageSnackbarHelper.showMessage(this, "Target found!");
 
     // stop tracking
     isNavigating = false;
@@ -533,16 +540,18 @@ public class AugmentedImageActivity extends AppCompatActivity implements GLSurfa
   private void configureSession() {
     Config config = new Config(session);
     config.setFocusMode(Config.FocusMode.AUTO);
-    if (!setupAugmentedImageDatabase(config)) {
+    AugmentedImageDatabase augmentedImageDatabase = workspace.setupAugmentedImagesWorkspace(session);
+    if (augmentedImageDatabase == null) {
       messageSnackbarHelper.showError(this, "Could not setup augmented image database");
+    } else {
+      config.setAugmentedImageDatabase(augmentedImageDatabase);
     }
     session.configure(config);
   }
 
   private void drawAugmentedImages(float[] projmtx, float[] viewmtx, float[] colorCorrectionRgba) {
 
-    for(AugmentedImagesLocalizer.Companion.CalibrationPoint point : localizer.getCalibrationMap().values())
-    {
+    for (AugmentedImagesLocalizer.Companion.CalibrationPoint point : localizer.getCalibrationMap().values()) {
       AugmentedImage augmentedImage = point.getAugmentedImage();
       Anchor centerAnchor = point.getAnchor();
 
@@ -557,56 +566,5 @@ public class AugmentedImageActivity extends AppCompatActivity implements GLSurfa
 
     augmentedImageRenderer.drawNavigationArrow(
             viewmtx, projmtx, cameraRelPose, targetRelPose, colorCorrectionRgba);
-  }
-
-  private boolean setupAugmentedImageDatabase(Config config) {
-    AugmentedImageDatabase augmentedImageDatabase;
-
-    // There are two ways to configure an AugmentedImageDatabase:
-    // 1. Add Bitmap to DB directly
-    // 2. Load a pre-built AugmentedImageDatabase
-    // Option 2) has
-    // * shorter setup time
-    // * doesn't require images to be packaged in apk.
-    if (useSingleImage) {
-
-      String name = "default.jpg";
-//      Bitmap augmentedImageBitmap = loadAugmentedImageBitmap("default.jpg");
-      Bitmap augmentedImageBitmap1 = loadAugmentedImageBitmap("7x7_1000-0.jpg");
-//      Bitmap augmentedImageBitmap2 = loadAugmentedImageBitmap("7x7_1000-1.jpg");
-      Bitmap augmentedImageBitmap2 = loadAugmentedImageBitmap(name);
-      if (augmentedImageBitmap1 == null) {
-        return false;
-      }
-
-      augmentedImageDatabase = new AugmentedImageDatabase(session);
-      augmentedImageDatabase.addImage("image1", augmentedImageBitmap1);
-      augmentedImageDatabase.addImage("image2", augmentedImageBitmap2);
-      // If the physical size of the image is known, you can instead use:
-      //     augmentedImageDatabase.addImage("image_name", augmentedImageBitmap, widthInMeters);
-      // This will improve the initial detection speed. ARCore will still actively estimate the
-      // physical size of the image as it is viewed from multiple viewpoints.
-    } else {
-      // This is an alternative way to initialize an AugmentedImageDatabase instance,
-      // load a pre-existing augmented image database.
-      try (InputStream is = getAssets().open("sample_database.imgdb")) {
-        augmentedImageDatabase = AugmentedImageDatabase.deserialize(session, is);
-      } catch (IOException e) {
-        Log.e(TAG, "IO exception loading augmented image database.", e);
-        return false;
-      }
-    }
-
-    config.setAugmentedImageDatabase(augmentedImageDatabase);
-    return true;
-  }
-
-  private Bitmap loadAugmentedImageBitmap(String fileName) {
-    try (InputStream is = getAssets().open(fileName)) {
-      return BitmapFactory.decodeStream(is);
-    } catch (IOException e) {
-      Log.e(TAG, "IO exception loading augmented image bitmap.", e);
-    }
-    return null;
   }
 }

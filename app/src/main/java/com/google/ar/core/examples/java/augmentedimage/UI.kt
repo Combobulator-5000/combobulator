@@ -8,7 +8,7 @@ import android.view.View
 import android.widget.CompoundButton
 import android.widget.ImageView
 import com.google.ar.core.Pose
-import com.google.ar.core.examples.java.augmentedimage.database.TrackedItem
+import com.google.ar.core.examples.java.augmentedimage.classifier.DatabaseObject
 import com.google.ar.core.examples.java.augmentedimage.databinding.ActivityMainBinding
 import org.opencv.android.Utils
 import org.opencv.core.Mat
@@ -65,10 +65,10 @@ class UI(private val activity: AugmentedImageActivity) {
 
             if (target == null) {
                 ui.scanCheckbox.isChecked = false
-                ui.trackingText.text = "No current target"
+                ui.trackingText.text = res.getString(R.string.no_target)
             } else {
                 ui.scanCheckbox.isChecked = true
-                ui.trackingText.text = "Tracking: {target.name}"
+                ui.trackingText.text = res.getString(R.string.tracking, target.name)
             }
         }
     }

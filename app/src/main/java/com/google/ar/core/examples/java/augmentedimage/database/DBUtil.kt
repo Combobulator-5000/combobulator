@@ -49,6 +49,7 @@ class DBUtil {
             val height = mat.height()
             val bytes = OpenCVHelpers.matToByteBuffer(mat)
             val bytearray = ByteArray(bytes.capacity())
+            bytes.get(bytearray)
             return ImageBytes(bytearray, width, height)
         }
 

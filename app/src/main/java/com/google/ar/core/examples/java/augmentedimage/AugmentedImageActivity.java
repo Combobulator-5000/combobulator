@@ -134,6 +134,14 @@ public class AugmentedImageActivity extends AppCompatActivity implements GLSurfa
   // it can be used to store or retrieve data.
   private Realm realm;
 
+  public void displayImage(ImageView imageView, Mat image) {
+    ui.displayImage(image, imageView);
+  }
+
+  public void displayImage(Mat image) {
+    ui.displayImage(image);
+  }
+
   protected void setupDatabase() {
     Realm.init(this);
     String appID = "combobulator9k-tlrvq";
@@ -150,7 +158,7 @@ public class AugmentedImageActivity extends AppCompatActivity implements GLSurfa
                 .build();
         realm = Realm.getInstance(config);
 
-        new ChangeListener(realm).run();
+        new ChangeListener(realm, this).run();
 
         for(String name : Arrays.asList("fork")) {
           Pose pose = Pose.makeTranslation(0.5f, 1.3f, 0.75f);
@@ -164,7 +172,7 @@ public class AugmentedImageActivity extends AppCompatActivity implements GLSurfa
           TrackedItem item = new TrackedItem(name, pose, images);
           realm.executeTransaction(transactionRealm -> {
             Log.v("Realm", "pushing object");
-            transactionRealm.insert(item);
+//            transactionRealm.insert(item);
 //          transactionRealm.commitTransaction();
           });
         }

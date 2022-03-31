@@ -1,12 +1,18 @@
 package com.google.ar.core.examples.java.augmentedimage
 
+import android.R
 import android.annotation.SuppressLint
 import android.content.res.Resources
+import android.graphics.Bitmap
 import android.view.View
 import android.widget.CompoundButton
+import android.widget.ImageView
 import com.google.ar.core.Pose
 import com.google.ar.core.examples.java.augmentedimage.database.TrackedItem
 import com.google.ar.core.examples.java.augmentedimage.databinding.ActivityMainBinding
+import org.opencv.android.Utils
+import org.opencv.core.Mat
+
 
 class UI(private val activity: AugmentedImageActivity) {
 
@@ -59,10 +65,10 @@ class UI(private val activity: AugmentedImageActivity) {
 
             if (target == null) {
                 ui.scanCheckbox.isChecked = false
-                ui.trackingText.text = res.getString(R.string.no_target)
+                ui.trackingText.text = "No current target"
             } else {
                 ui.scanCheckbox.isChecked = true
-                ui.trackingText.text = res.getString(R.string.tracking, target.name)
+                ui.trackingText.text = "Tracking: {target.name}"
             }
         }
     }
@@ -75,6 +81,16 @@ class UI(private val activity: AugmentedImageActivity) {
         activity.runOnUiThread {
             ui.calibratedCheckbox.isChecked = isCalibrated
         }
+    }
+
+    fun displayImage(image : Mat, imageView : ImageView) {
+        val bm = Bitmap.createBitmap(image.cols(), image.rows(), Bitmap.Config.ARGB_8888)
+        Utils.matToBitmap(image, bm)
+        imageView.setImageBitmap(bm)
+    }
+
+    fun displayImage(image : Mat) {
+        displayImage(image, ui.debugImageView)
     }
 
     fun updateTrackingProgress(distance : Double) {

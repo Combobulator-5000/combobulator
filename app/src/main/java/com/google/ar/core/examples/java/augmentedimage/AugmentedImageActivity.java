@@ -17,6 +17,9 @@
 package com.google.ar.core.examples.java.augmentedimage;
 
 import android.annotation.SuppressLint;
+import android.app.Activity;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.media.Image;
 import android.net.Uri;
 import android.opengl.GLES20;
@@ -40,7 +43,8 @@ import com.google.ar.core.Pose;
 import com.google.ar.core.Session;
 import com.google.ar.core.TrackingState;
 import com.google.ar.core.examples.java.augmentedimage.classifier.Classifier;
-import com.google.ar.core.examples.java.augmentedimage.classifier.TrackedItem;
+import com.google.ar.core.examples.java.augmentedimage.database.ChangeListener;
+import com.google.ar.core.examples.java.augmentedimage.database.TrackedItem;
 import com.google.ar.core.examples.java.augmentedimage.localization.AugmentedImagesLocalizer;
 import com.google.ar.core.examples.java.augmentedimage.localization.Workspace;
 import com.google.ar.core.examples.java.augmentedimage.rendering.AugmentedImageRenderer;
@@ -57,6 +61,7 @@ import com.google.ar.core.exceptions.UnavailableSdkTooOldException;
 import com.google.ar.core.exceptions.UnavailableUserDeclinedInstallationException;
 
 import org.opencv.android.OpenCVLoader;
+import org.opencv.core.Mat;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -64,9 +69,19 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.FutureTask;
 
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
+
+import io.realm.Realm;
+import io.realm.mongodb.App;
+import io.realm.mongodb.AppConfiguration;
+import io.realm.mongodb.Credentials;
+import io.realm.mongodb.User;
+import io.realm.mongodb.sync.SyncConfiguration;
 
 /**
  * This app extends the HelloAR Java app to include image tracking functionality.
@@ -112,47 +127,106 @@ public class AugmentedImageActivity extends AppCompatActivity implements GLSurfa
   private AugmentedImagesLocalizer localizer;
   private boolean isNavigating = false;
   private TrackedItem target;
+  private App app;
 
+  // This is an authenticated connection to the Realm Sync instance;
+  // it can be used to store or retrieve data.
+  private Realm realm;
 
-  protected void setupObjectDatabase() {
+  public void displayImage(ImageView imageView, Mat image) {
+    ui.displayImage(image, imageView);
+  }
+
+  public void displayImage(Mat image) {
+    ui.displayImage(image);
+  }
+
+  protected void setupDatabase() {
+    Realm.init(this);
+    String appID = "combobulator9k-tlrvq";
+    app = new App(new AppConfiguration.Builder(appID).build());
+    Credentials credentials = Credentials.anonymous();
+    app.loginAsync(credentials, result -> {
+      if (result.isSuccess()) {
+        Log.v("Realm", "Database authenticated.");
+        User user = app.currentUser();
+        String paritionValue = "plab";
+        SyncConfiguration config = new SyncConfiguration.Builder(user, paritionValue)
+                .allowQueriesOnUiThread(true)
+                .allowWritesOnUiThread(true)
+                .build();
+        realm = Realm.getInstance(config);
+
+        new ChangeListener(realm, this).run();
+
+        for(String name : Arrays.asList("fork")) {
+          Pose pose = Pose.makeTranslation(0.5f, 1.3f, 0.75f);
+          ArrayList<Mat> images = new ArrayList<Mat>();
+
+          for (int i = 1; i <= 3; i++) {
+            @SuppressLint("DefaultLocale") String filename = String.format("classifier_test_images/%s%d.jpg", name, i);
+            images.add(OpenCVHelpers.readImageMatFromAsset(filename, this));
+          }
+
+          TrackedItem item = new TrackedItem(name, pose, images);
+          realm.executeTransaction(transactionRealm -> {
+            Log.v("Realm", "pushing object");
+//            transactionRealm.insert(item);
+//          transactionRealm.commitTransaction();
+          });
+        }
+
+//        FutureTask<String> task = new FutureTask(new BackgroundQuickStart(app.currentUser(), this), "Test");
+//        ExecutorService executorService = Executors.newFixedThreadPool(2);
+//        executorService.execute(task);
+      } else {
+        Log.e("Realm", "Failed to authenticate: " + result.getError());
+      }
+    });
 
     try {
       classifier.loadMatcherParams(getAssets().open("matcher_params.yaml"));
     } catch (IOException e) {
       e.printStackTrace();
     }
+  }
 
-    List<TrackedItem> objects = new ArrayList<>();
+  public class BackgroundQuickStart implements Runnable {
+    User user;
+    Activity activity;
 
-    Map<String, Integer> objCounts = new HashMap();
-    objCounts.put("lock", 5);
-//    objCounts.put("tape measure", 6);
-    objCounts.put("marker", 7);
-    objCounts.put("tape", 6);
-//    objCounts.put("scissors", 3);
-//    objCounts.put("pliers", 3);
-//    objCounts.put("fork", 3);
-//    for(String name : Arrays.asList("a","b", "c","d","e","f","g","h","i","j")){
-//      objCounts.put(name, 0);
-//    }
+    public BackgroundQuickStart(User user, Activity activity) {
+      this.user = user;
+      this.activity = activity;
+    }
 
-    for (String name : objCounts.keySet()) {
-      TrackedItem obj = new TrackedItem(name);
+    @Override
+    public void run() {
+      String partitionValue = "plab";
 
-      for (int i = 1; i <= objCounts.get(name); i++) {
-        @SuppressLint("DefaultLocale") String filename = String.format("classifier_test_images/%s%d.jpg", name, i);
-        obj.addAssetImage(filename, this);
+      SyncConfiguration config = new SyncConfiguration.Builder(
+              user,
+              partitionValue)
+              .build();
+
+      Realm backgroundThreadRealm = Realm.getInstance(config);
+
+//      for(String name : Arrays.asList("fork")) {
+//        Pose pose = Pose.makeTranslation(0.5f, 1.3f, 0.75f);
+//        ArrayList<Mat> images = new ArrayList<Mat>();
+//
+//        for (int i = 1; i <= 3; i++) {
+//          @SuppressLint("DefaultLocale") String filename = String.format("classifier_test_images/%s%d.jpg", name, i);
+//          images.add(OpenCVHelpers.readImageMatFromAsset(filename, activity));
+//        }
+//
+//        TrackedItem item = new TrackedItem(name, pose, images);
+//        backgroundThreadRealm.executeTransaction(transactionRealm -> {
+//          Log.v("Realm", "pushing object");
+//          transactionRealm.insert(item);
+////          transactionRealm.commitTransaction();
+//        });
       }
-      obj.setLocation(Pose.makeTranslation(0.5f, 1.3f, 0.75f));
-
-      objects.add(obj);
-      Log.d("Classifier", obj.toString());
-    }
-
-    synchronized (classifier) {
-      classifier.addObjects(objects);
-    }
-//    classifier.linkObjectsToUI(ui);
   }
 
 
@@ -173,8 +247,7 @@ public class AugmentedImageActivity extends AppCompatActivity implements GLSurfa
     }
 
     classifier = new Classifier();
-    Thread dbsetup = new Thread(this::setupObjectDatabase);
-    dbsetup.start();
+    setupDatabase();
 
     displayRotationHelper = new DisplayRotationHelper(/*context=*/ this);
 
@@ -355,6 +428,9 @@ public class AugmentedImageActivity extends AppCompatActivity implements GLSurfa
       Frame frame = session.update();
       Camera camera = frame.getCamera();
 
+      // TODO: a similar structure to this would need to be used in an admin workflow.
+      // If the ui has a takeImageRequestPending (or something), the image here needs to
+      // be pushed to the database
       if (ui.classifyRequestPending()) {
         Image image = frame.acquireCameraImage();
         setTarget(classifier.evaluate(image));

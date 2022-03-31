@@ -4,6 +4,7 @@ import android.media.Image
 import android.util.Log
 import com.google.ar.core.examples.java.augmentedimage.OpenCVHelpers
 import com.google.ar.core.examples.java.augmentedimage.UI
+import com.google.ar.core.examples.java.augmentedimage.database.TrackedItem
 import org.opencv.core.Mat
 import org.opencv.core.MatOfDMatch
 import org.opencv.features2d.FlannBasedMatcher
@@ -12,6 +13,8 @@ import java.io.*
 class Classifier {
 
     companion object {
+        // Maps each known item to an array of its descriptors
+        var allDescriptors : HashMap<TrackedItem, MutableList<Mat>> = HashMap();
         const val TAG = "classifier"
         const val DISTANCE_FACTOR = 0.7
     }
@@ -22,13 +25,10 @@ class Classifier {
     val allObjScores : MutableMap<TrackedItem, List<Int>> = HashMap()
 
     fun linkObjectsToUI(ui: UI) {
-        ui.setObjectList(objects)
+        ui.setObjectList(allDescriptors.keys.toList())
     }
 
-    fun addObjects(newObjects : List<TrackedItem>) {
-        objects.addAll(newObjects)
-    }
-
+    // Returns the TrackedItem that is the most visually similar to `image`
     fun evaluate(image : Image) : TrackedItem {
         return evaluate(OpenCVHelpers.imageToMat(image))
     }
@@ -50,30 +50,28 @@ class Classifier {
     }
 
     fun evaluate(image : Mat) : TrackedItem {
-        val descriptors = OpenCVHelpers.getDescriptors(image)
+        val targetDescriptors = OpenCVHelpers.getDescriptors(image)
 
         // Keeping the full list here (rather than a call to maxByOrNull)
         // in case we want to provide the user with a list of the next few top options
-        val objectsWithScores = objects.map {
-            Pair(it, getMatchScore(descriptors, it))
-        }.sortedByDescending {it.second}
+        val itemsWithScores = allDescriptors.keys.map { item ->
+            var score = getMatchScore(targetDescriptors, item)
+            Pair(item, score)
+        }.sortedByDescending { pair -> pair.second }
 
-        Log.d("Classifier", objectsWithScores.joinToString { "\n" })
+        Log.d("Classifier", itemsWithScores.joinToString { "\n" })
 
-        return objectsWithScores[0].first
+        return itemsWithScores[0].first
     }
 
     // evaluates the
-    fun getMatchScore(targetDescriptors : Mat, obj : TrackedItem) : Int {
+    fun getMatchScore(targetDescriptors : Mat, item : TrackedItem) : Int {
+        var referenceDescriptors = allDescriptors[item]!!
 
-        allObjScores[obj] = obj.allDescriptors.map {countMatches(targetDescriptors, it)}
-
-        return if (obj.allDescriptors.size > 0) {
-            obj.allDescriptors.maxOf {
-                countMatches(targetDescriptors, it)
-            }
-        } else 0
-
+        allObjScores[item] = referenceDescriptors.map {countMatches(targetDescriptors, it)}
+        return referenceDescriptors.maxOf {
+            countMatches(targetDescriptors, it)
+        }
     }
 
     fun countMatches(descriptors1 : Mat, descriptors2: Mat) : Int {

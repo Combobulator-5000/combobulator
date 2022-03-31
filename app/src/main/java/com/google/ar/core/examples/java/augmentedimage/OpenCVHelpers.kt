@@ -25,6 +25,7 @@ class OpenCVHelpers {
             return descriptors
         }
 
+        @JvmStatic
         fun readImageMatFromAsset(fileName : String, context : Context) : Mat {
             val assetManager = context.assets
             var stream = assetManager.open(fileName);

@@ -1,8 +1,6 @@
 package com.google.ar.core.examples.java.augmentedimage.localization
 
-import com.google.ar.core.Anchor
-import com.google.ar.core.Camera
-import com.google.ar.core.Pose
+import com.google.ar.core.*
 
 interface Localizer {
 
@@ -11,12 +9,16 @@ interface Localizer {
     }
 
     val workspace : Workspace
-
     var calibrated : Boolean
-    var lastAnchor : Anchor?
-    var lastAnchorAbsPose : Pose?
+    var currentAbsTransform: Pose?
 
-    var currentAbsPose : Pose?
+    fun update(frame: Frame, session: Session, attemptCalibration: Boolean)
 
-    fun updatePose(camera : Camera)
+    fun convertToAbsPose(framePose : Pose) : Pose {
+        return currentAbsTransform!!.compose(framePose)
+    }
+
+    fun convertToFramePose(absPose : Pose) : Pose {
+        return currentAbsTransform!!.inverse().compose(absPose)
+    }
 }

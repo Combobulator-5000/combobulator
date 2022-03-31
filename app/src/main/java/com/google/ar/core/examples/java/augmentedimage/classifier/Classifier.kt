@@ -3,6 +3,7 @@ package com.google.ar.core.examples.java.augmentedimage.classifier
 import android.media.Image
 import android.util.Log
 import com.google.ar.core.examples.java.augmentedimage.OpenCVHelpers
+import com.google.ar.core.examples.java.augmentedimage.UI
 import org.opencv.core.Mat
 import org.opencv.core.MatOfDMatch
 import org.opencv.features2d.FlannBasedMatcher
@@ -12,13 +13,17 @@ class Classifier {
 
     companion object {
         const val TAG = "classifier"
-        const val DISTANCE_FACTOR = 0.85
+        const val DISTANCE_FACTOR = 0.7
     }
 
     private val objects : MutableList<TrackedItem> = ArrayList()
     private val flann : FlannBasedMatcher = FlannBasedMatcher()
 
     val allObjScores : MutableMap<TrackedItem, List<Int>> = HashMap()
+
+    fun linkObjectsToUI(ui: UI) {
+        ui.setObjectList(objects)
+    }
 
     fun addObjects(newObjects : List<TrackedItem>) {
         objects.addAll(newObjects)
@@ -63,9 +68,12 @@ class Classifier {
 
         allObjScores[obj] = obj.allDescriptors.map {countMatches(targetDescriptors, it)}
 
-        return obj.allDescriptors.maxOf {
-            countMatches(targetDescriptors, it)
-        }
+        return if (obj.allDescriptors.size > 0) {
+            obj.allDescriptors.maxOf {
+                countMatches(targetDescriptors, it)
+            }
+        } else 0
+
     }
 
     fun countMatches(descriptors1 : Mat, descriptors2: Mat) : Int {

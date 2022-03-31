@@ -60,6 +60,7 @@ import org.opencv.android.OpenCVLoader;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -124,13 +125,16 @@ public class AugmentedImageActivity extends AppCompatActivity implements GLSurfa
     List<TrackedItem> objects = new ArrayList<>();
 
     Map<String, Integer> objCounts = new HashMap();
-//    objCounts.put("lock", 5);
+    objCounts.put("lock", 5);
 //    objCounts.put("tape measure", 6);
-//    objCounts.put("marker", 7);
-//    objCounts.put("tape", 6);
-    objCounts.put("scissors", 3);
-    objCounts.put("pliers", 3);
-    objCounts.put("fork", 3);
+    objCounts.put("marker", 7);
+    objCounts.put("tape", 6);
+//    objCounts.put("scissors", 3);
+//    objCounts.put("pliers", 3);
+//    objCounts.put("fork", 3);
+//    for(String name : Arrays.asList("a","b", "c","d","e","f","g","h","i","j")){
+//      objCounts.put(name, 0);
+//    }
 
     for (String name : objCounts.keySet()) {
       TrackedItem obj = new TrackedItem(name);
@@ -138,8 +142,9 @@ public class AugmentedImageActivity extends AppCompatActivity implements GLSurfa
       for (int i = 1; i <= objCounts.get(name); i++) {
         @SuppressLint("DefaultLocale") String filename = String.format("classifier_test_images/%s%d.jpg", name, i);
         obj.addAssetImage(filename, this);
-        obj.setLocation(Pose.makeTranslation(0.5f, 1.3f, 0.75f));
       }
+      obj.setLocation(Pose.makeTranslation(0.5f, 1.3f, 0.75f));
+
       objects.add(obj);
       Log.d("Classifier", obj.toString());
     }
@@ -147,6 +152,7 @@ public class AugmentedImageActivity extends AppCompatActivity implements GLSurfa
     synchronized (classifier) {
       classifier.addObjects(objects);
     }
+//    classifier.linkObjectsToUI(ui);
   }
 
 
@@ -351,17 +357,14 @@ public class AugmentedImageActivity extends AppCompatActivity implements GLSurfa
 
       if (ui.classifyRequestPending()) {
         Image image = frame.acquireCameraImage();
-        target = classifier.evaluate(image);
-
-        ui.setTarget(target);
+        setTarget(classifier.evaluate(image));
+        image.close();
 
         Map<TrackedItem, List<Integer>> objectScores = classifier.getAllObjScores();
         for (TrackedItem obj : objectScores.keySet()) {
           ui.set(obj.getName(), objectScores.get(obj));
         }
 
-        isNavigating = true;
-        image.close();
       }
       // Attempt to update current position based on known locations of augmented images
       localizer.update(frame, session, true);
@@ -425,6 +428,12 @@ public class AugmentedImageActivity extends AppCompatActivity implements GLSurfa
       // Avoid crashing the application due to unhandled exceptions.
       Log.e(TAG, "Exception on the OpenGL thread", t);
     }
+  }
+
+  void setTarget(TrackedItem newTarget){
+    target = newTarget;
+    ui.setTarget(target);
+    isNavigating = true;
   }
 
 

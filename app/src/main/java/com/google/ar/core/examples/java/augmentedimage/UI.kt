@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.content.res.Resources
 import android.view.View
 import android.widget.CompoundButton
+import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.ar.core.Pose
 import com.google.ar.core.examples.java.augmentedimage.classifier.TrackedItem
 import com.google.ar.core.examples.java.augmentedimage.databinding.ActivityMainBinding
@@ -12,6 +13,10 @@ class UI(private val activity: AugmentedImageActivity) {
 
     companion object {
         const val ON_AT_STARTUP = true
+    }
+
+    enum class Mode {
+        TRACKING, EDITING
     }
 
     private val ui: ActivityMainBinding = ActivityMainBinding.inflate(activity.layoutInflater)
@@ -31,6 +36,8 @@ class UI(private val activity: AugmentedImageActivity) {
     var maxDistance = 1.0
     var minDistance = 0.1
 
+    lateinit var itemListAdapter : ItemListAdapter
+
 
     init {
         activity.setContentView(ui.root)
@@ -47,6 +54,12 @@ class UI(private val activity: AugmentedImageActivity) {
         ui.classifyButton.setOnClickListener(classifyRequestQueue)
 
         updateDebugText()
+    }
+
+    fun setObjectList(objects: List<TrackedItem>){
+        ui.rvItemList.visibility = View.VISIBLE
+        ui.rvItemList.adapter = ItemListAdapter(activity, objects)
+        ui.rvItemList.layoutManager = LinearLayoutManager(activity)
     }
 
     fun setTarget(target : TrackedItem?) {

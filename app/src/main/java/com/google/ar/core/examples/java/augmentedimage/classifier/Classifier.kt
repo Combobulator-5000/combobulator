@@ -49,7 +49,7 @@ class Classifier {
     }
 
     fun evaluate(image : Mat) : TrackedItem {
-        val descriptors = OpenCVHelpers.getDescriptors(image)
+        val targetDescriptors = OpenCVHelpers.getDescriptors(image)
 
         // Keeping the full list here (rather than a call to maxByOrNull)
         // in case we want to provide the user with a list of the next few top options

@@ -65,6 +65,7 @@ import org.opencv.core.Mat;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -126,7 +127,7 @@ public class AugmentedImageActivity extends AppCompatActivity implements GLSurfa
   private boolean isNavigating = false;
   private TrackedItem target;
 
-  private final Classifier classifier = new Classifier();
+  private Classifier classifier;
 
   private App app;
 
@@ -263,6 +264,7 @@ public class AugmentedImageActivity extends AppCompatActivity implements GLSurfa
       return;
     }
 
+    classifier = new Classifier();
     setupDatabase();
 
     displayRotationHelper = new DisplayRotationHelper(/*context=*/ this);

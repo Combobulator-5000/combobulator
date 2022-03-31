@@ -3,6 +3,7 @@ package com.google.ar.core.examples.java.augmentedimage.classifier
 import android.media.Image
 import android.util.Log
 import com.google.ar.core.examples.java.augmentedimage.OpenCVHelpers
+import com.google.ar.core.examples.java.augmentedimage.UI
 import com.google.ar.core.examples.java.augmentedimage.database.TrackedItem
 import org.opencv.core.Mat
 import org.opencv.core.MatOfDMatch
@@ -10,22 +11,22 @@ import org.opencv.features2d.FlannBasedMatcher
 import java.io.*
 
 class Classifier {
+
     companion object {
         // Maps each known item to an array of its descriptors
         var allDescriptors : HashMap<TrackedItem, MutableList<Mat>> = HashMap();
         const val TAG = "classifier"
-        const val DISTANCE_FACTOR = 0.85
+        const val DISTANCE_FACTOR = 0.7
     }
 
     private val objects : MutableList<TrackedItem> = ArrayList()
     private val flann : FlannBasedMatcher = FlannBasedMatcher()
+
     val allObjScores : MutableMap<TrackedItem, List<Int>> = HashMap()
 
-//    private val objects : MutableList<TrackedItem> = ArrayList()
-//
-//    fun addObjects(newObjects : List<TrackedItem>) {
-//        objects.addAll(newObjects)
-//    }
+    fun linkObjectsToUI(ui: UI) {
+        ui.setObjectList(allDescriptors.keys.toList())
+    }
 
     // Returns the TrackedItem that is the most visually similar to `image`
     fun evaluate(image : Image) : TrackedItem {

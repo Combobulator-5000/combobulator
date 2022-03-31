@@ -123,12 +123,10 @@ public class AugmentedImageActivity extends AppCompatActivity implements GLSurfa
   private final boolean useSingleImage = true;
 
   private Workspace workspace;
+  private Classifier classifier;
   private AugmentedImagesLocalizer localizer;
   private boolean isNavigating = false;
   private TrackedItem target;
-
-  private Classifier classifier;
-
   private App app;
 
   // This is an authenticated connection to the Realm Sync instance;
@@ -186,26 +184,11 @@ public class AugmentedImageActivity extends AppCompatActivity implements GLSurfa
       }
     });
 
-    // List<TrackedItem> objects = new ArrayList<>();
-
-    // TrackedItem earth = new TrackedItem("earth");
-    // earth.addAssetImage("classifier_test_images/default.jpg", this);
-    // objects.add(earth);
-
-    // for(String name : Arrays.asList("fork", "scissors", "pliers")) {
-    //   TrackedItem obj = new TrackedItem(name);
-    //   for (int i = 1; i <= 3; i++) {
-    //     @SuppressLint("DefaultLocale") String filename = String.format("classifier_test_images/%s%d.jpg", name, i);
-    //     obj.addAssetImage(filename, this);
-    //     obj.setLocation(Pose.makeTranslation(0.5f, 1.3f, 0.75f));
-    //   }
-    //   objects.add(obj);
-    //   Log.d("Classifier", obj.toString());
-    // }
-
-    // synchronized (classifier) {
-    //   classifier.addObjects(objects);
-    // }
+    try {
+      classifier.loadMatcherParams(getAssets().open("matcher_params.yaml"));
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
   }
 
   public class BackgroundQuickStart implements Runnable {
@@ -243,8 +226,7 @@ public class AugmentedImageActivity extends AppCompatActivity implements GLSurfa
 //          transactionRealm.insert(item);
 ////          transactionRealm.commitTransaction();
 //        });
-//      }
-    }
+      }
   }
 
 
@@ -451,17 +433,14 @@ public class AugmentedImageActivity extends AppCompatActivity implements GLSurfa
       // be pushed to the database
       if (ui.classifyRequestPending()) {
         Image image = frame.acquireCameraImage();
-        target = classifier.evaluate(image);
-
-        ui.setTarget(target);
+        setTarget(classifier.evaluate(image));
+        image.close();
 
         Map<TrackedItem, List<Integer>> objectScores = classifier.getAllObjScores();
         for (TrackedItem obj : objectScores.keySet()) {
           ui.set(obj.getName(), objectScores.get(obj));
         }
 
-        isNavigating = true;
-        image.close();
       }
       // Attempt to update current position based on known locations of augmented images
       localizer.update(frame, session, true);
@@ -525,6 +504,12 @@ public class AugmentedImageActivity extends AppCompatActivity implements GLSurfa
       // Avoid crashing the application due to unhandled exceptions.
       Log.e(TAG, "Exception on the OpenGL thread", t);
     }
+  }
+
+  void setTarget(TrackedItem newTarget){
+    target = newTarget;
+    ui.setTarget(target);
+    isNavigating = true;
   }
 
 

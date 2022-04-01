@@ -37,7 +37,11 @@ class UI(private val activity: CombobulatorMainActivity) {
 
     // Data
     var location : Pose? = null
-    private var target : TrackedItem? = null
+
+    private var tracking : Boolean = false
+    private var targetName : String = ""
+    private var targetLocation : Pose = Pose.makeTranslation(0f,0f,0f)
+
     var miscData : MutableMap<String, String> = HashMap()
     var miscDataUpdated = false
     var maxDistance = 1.0
@@ -70,7 +74,14 @@ class UI(private val activity: CombobulatorMainActivity) {
     }
 
     fun setTarget(target : TrackedItem?) {
-        this.target = target
+        // Must be unpacked here,
+        if (target != null) {
+            tracking = true
+            targetName = target.name
+            targetLocation = target.location
+        } else {
+            tracking = false
+        }
 
         activity.runOnUiThread {
             // reset progress whenever we scan a new thing
@@ -82,7 +93,7 @@ class UI(private val activity: CombobulatorMainActivity) {
                 ui.trackingText.text = "No target tracking"
             } else {
                 ui.scanCheckbox.isChecked = true
-                ui.trackingText.text = "Tracking item: ${target.name}"
+                ui.trackingText.text = "Tracking item: ${targetName}"
             }
         }
     }
@@ -140,11 +151,11 @@ class UI(private val activity: CombobulatorMainActivity) {
                 "X: - \nY: - \nZ: - \n"
             }
 
-            val trackingText: String = if (target != null) {
-                val t = target!!
+            val trackingText: String = if (tracking) {
+                val t = targetLocation
                 String.format(
                     "Tracking: %s \n\t [%.2f %.2f %.2f]",
-                    t.name, t.location.tx(), t.location.ty(), t.location.tz()
+                    targetName, t.tx(), t.ty(), t.tz()
                 )
             } else {
                 "Tracking: - \n\t [--  --  --]"

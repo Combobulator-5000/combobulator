@@ -30,6 +30,7 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.RequestManager;
+import com.enph.plab.java.combobulator.database.RealmTrackedItem;
 import com.enph.plab.java.combobulator.ui.UI;
 import com.google.ar.core.Anchor;
 import com.google.ar.core.ArCoreApk;
@@ -67,6 +68,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
@@ -163,7 +165,7 @@ public class CombobulatorMainActivity extends AppCompatActivity implements GLSur
             images.add(OpenCVHelpers.readImageMatFromAsset(filename, this));
           }
 
-          TrackedItem item = new TrackedItem(name, pose, images);
+          RealmTrackedItem item = new RealmTrackedItem(name, pose, images);
           realm.executeTransaction(transactionRealm -> {
             Log.v("Realm", "pushing object");
 //            transactionRealm.insert(item);

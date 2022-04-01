@@ -15,17 +15,28 @@ class Classifier {
     companion object {
         // Maps each known item to an array of its descriptors
         var allDescriptors : HashMap<TrackedItem, MutableList<Mat>> = HashMap();
+
+        // A separate list kept for the purposes of dynamically updatable UI
+        var allObjects : MutableList<TrackedItem> = ArrayList()
+
         const val TAG = "classifier"
-        const val DISTANCE_FACTOR = 0.7
+        const val DISTANCE_RATIO = 0.7
+
+        @Synchronized
+        fun addItem(item: TrackedItem) {
+            val descriptors = item.images.map { OpenCVHelpers.getDescriptors(it) }
+            allObjects.add(item)
+            allDescriptors[item] = descriptors.toMutableList()
+            Log.v("Database", "Added ${item.name} to classifier with ${descriptors.size} descriptors")
+        }
     }
 
-    private val objects : MutableList<TrackedItem> = ArrayList()
     private val flann : FlannBasedMatcher = FlannBasedMatcher()
 
     val allObjScores : MutableMap<TrackedItem, List<Int>> = HashMap()
 
     fun linkObjectsToUI(ui: UI) {
-        ui.setObjectList(allDescriptors.keys.toList())
+        ui.setObjectList(allObjects)
     }
 
     // Returns the TrackedItem that is the most visually similar to `image`
@@ -60,6 +71,7 @@ class Classifier {
         }.sortedByDescending { pair -> pair.second }
 
         Log.d("Classifier", itemsWithScores.joinToString { "\n" })
+        Log.d("Classifier", itemsWithScores[0].first.name)
 
         return itemsWithScores[0].first
     }
@@ -78,18 +90,15 @@ class Classifier {
 
         val matches : MutableList<MatOfDMatch> = ArrayList()
         flann.knnMatch(descriptors1, descriptors2, matches, 2)
-        Log.d("Classifier", "done")
 
         var goodMatchesCount = 0
 
         for (match in matches) {
             val (m,n) = match.toList()
-            if (m.distance < DISTANCE_FACTOR * n.distance) {
+            if (m.distance < DISTANCE_RATIO * n.distance) {
                 goodMatchesCount+=1
             }
         }
-
-        Log.d("Classifier", "good matches: $goodMatchesCount")
         return goodMatchesCount
     }
 }

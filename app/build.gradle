@@ -7,7 +7,7 @@ apply plugin: 'realm-android'
 android {
     compileSdkVersion 31
     defaultConfig {
-        applicationId "com.google.ar.core.examples.java.augmentedimage"
+        applicationId "com.enph.plab.java.combobulator"
 
         // "AR Optional" apps must declare minSdkVersion >= 14.
         // "AR Required" apps must declare minSdkVersion >= 24.

@@ -22,7 +22,7 @@
     android:backgroundTint="#00FFFFFF"
     android:visibility="visible"
     app:layout_wrapBehaviorInParent="skipped"
-    tools:context="com.google.ar.core.apps.augmentedimage.AugmentedImageActivity">
+    tools:context="com.enph.plab.java.combobulator.CombobulatorMainActivity">
 
   <android.opengl.GLSurfaceView
       android:id="@+id/surfaceview"

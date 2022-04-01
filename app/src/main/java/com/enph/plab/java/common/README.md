@@ -1,0 +1,2 @@
+All code in this package is directly from the arcore-android-sdk samples; see:
+https://github.com/google-ar/arcore-android-sdk/tree/master/samples/augmented_image_java/app/src/main/java/com/google/ar/core/examples/java/common

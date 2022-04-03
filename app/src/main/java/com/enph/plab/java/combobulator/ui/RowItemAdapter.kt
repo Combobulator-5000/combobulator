@@ -1,12 +1,17 @@
-package com.enph.plab.java.combobulator
+package com.enph.plab.java.combobulator.ui
 
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
+import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
+import com.enph.plab.java.combobulator.CombobulatorMainActivity
+import com.enph.plab.java.combobulator.R
+import com.enph.plab.java.combobulator.classifier.Classifier
 import com.enph.plab.java.combobulator.database.TrackedItem
+import com.google.ar.core.Pose
 import kotlinx.android.synthetic.main.row_item.view.*
 
 
@@ -15,7 +20,7 @@ import kotlinx.android.synthetic.main.row_item.view.*
 // TODO finish going through this tutorial
 //https://stackoverflow.com/questions/30398247/how-to-filter-a-recyclerview-with-a-searchview
 
-class ItemListAdapter(private val activity: CombobulatorMainActivity, private val items: List<TrackedItem>) : RecyclerView.Adapter<ItemListAdapter.ViewHolder>() {
+class RowItemAdapter(private val activity: CombobulatorMainActivity, private val items: List<TrackedItem>) : RecyclerView.Adapter<RowItemAdapter.ViewHolder>() {
 
     // Provide a direct reference to each of the views within a data item
     // Used to cache the views within the item layout for fast access
@@ -24,11 +29,12 @@ class ItemListAdapter(private val activity: CombobulatorMainActivity, private va
         // for any view that will be set as you render a row
         val itemName: TextView = itemView.itemName
         val locateButton: Button = itemView.locateButton
+        val imageView : ImageView = itemView.imageView
 //        val itemRefImage: ImageView = itemView.findViewById<ImageView>(R.id.itemRefImage)
     }
 
     // a new item has been added to the list; add a view layout to the item
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ItemListAdapter.ViewHolder {
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
 
         val context = parent.context
         val inflater = LayoutInflater.from(context)
@@ -38,26 +44,42 @@ class ItemListAdapter(private val activity: CombobulatorMainActivity, private va
     }
 
     // Populate layout with data from a TrackedItem
-    override fun onBindViewHolder(holder: ItemListAdapter.ViewHolder, position: Int) {
+    override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val item: TrackedItem = items[position]
 
         holder.itemName.text = item.name
 
+        if (item.images.size > 0) {
+            UI.displayImage(item.images[0], holder.imageView)
+        } else {
+            // Set to default image if no reference image provided
+            // Note this must be done explicitly because of how RecyclerView reuses previous entries
+            // (otherwise image may already be set for some previous item)
+            holder.imageView.setImageResource(R.drawable.ic_launcher)
+        }
+
         // When the "locate" button is pressed, have the activity start tracking this item
         holder.locateButton.setOnClickListener {
             activity.setTarget(item)
+            activity.ui.hideFragment()
         }
 
-        // TODO: implement reference images
-//        if (item.refImage != null) {
-//            val bytes = item.refImage!!.bytes!!
-//            val bm = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
-//            holder.itemRefImage.setImageBitmap(bm)
-//        }
     }
 
     override fun getItemCount(): Int {
         return items.size
     }
 
+
+    fun newItem() {
+        val newItem = TrackedItem(
+            "New item",
+            Pose.makeTranslation(0f,0f,0f),
+            ArrayList())
+
+        val lastPosition = Classifier.allObjects.size
+        Classifier.addItem(newItem)
+
+        notifyItemInserted(lastPosition)
+    }
 }

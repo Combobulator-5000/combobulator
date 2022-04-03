@@ -3,12 +3,15 @@ package com.enph.plab.java.combobulator.ui
 import android.annotation.SuppressLint
 import android.content.res.Resources
 import android.graphics.Bitmap
+import android.view.GestureDetector
+import android.view.MotionEvent
 import android.view.View
 import android.widget.CompoundButton
 import android.widget.ImageView
-import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.core.view.MotionEventCompat
+import androidx.fragment.app.Fragment
 import com.enph.plab.java.combobulator.CombobulatorMainActivity
-import com.enph.plab.java.combobulator.ItemListAdapter
+import com.enph.plab.java.combobulator.R
 import com.google.ar.core.Pose
 import com.enph.plab.java.combobulator.database.TrackedItem
 import com.enph.plab.java.combobulator.databinding.ActivityMainBinding
@@ -16,10 +19,19 @@ import org.opencv.android.Utils
 import org.opencv.core.Mat
 
 
-class UI(private val activity: CombobulatorMainActivity) {
+@SuppressLint("ClickableViewAccessibility")
+class UI(protected val activity: CombobulatorMainActivity) {
 
     companion object {
         const val ON_AT_STARTUP = true
+
+        var miscData : MutableMap<String, String> = HashMap()
+
+        fun displayImage(image : Mat, imageView : ImageView) {
+            val bm = Bitmap.createBitmap(image.cols(), image.rows(), Bitmap.Config.ARGB_8888)
+            Utils.matToBitmap(image, bm)
+            imageView.setImageBitmap(bm)
+        }
     }
 
     enum class Mode {
@@ -30,6 +42,10 @@ class UI(private val activity: CombobulatorMainActivity) {
 
     // Shortcuts to elements that the activity needs access to
     val surfaceView = ui.surfaceview
+
+    val fragmentManager = activity.supportFragmentManager
+    val itemListFragment : ItemListUI
+    val itemEditorFragment : ItemEditorUI
 
     val res : Resources = activity.resources
 
@@ -42,12 +58,9 @@ class UI(private val activity: CombobulatorMainActivity) {
     private var targetName : String = ""
     private var targetLocation : Pose = Pose.makeTranslation(0f,0f,0f)
 
-    var miscData : MutableMap<String, String> = HashMap()
     var miscDataUpdated = false
     var maxDistance = 1.0
     var minDistance = 0.1
-
-    lateinit var itemListAdapter : ItemListAdapter
 
 
     init {
@@ -64,13 +77,34 @@ class UI(private val activity: CombobulatorMainActivity) {
 
         ui.classifyButton.setOnClickListener(classifyRequestQueue)
 
+        itemListFragment = ItemListUI(this)
+        itemEditorFragment = ItemEditorUI(this)
+
+        ui.openItemEditor.setOnClickListener {
+            loadFragment(itemEditorFragment)
+            ui.fragmentContainerView.visibility = View.VISIBLE
+        }
+
+        ui.openItemList.setOnClickListener {
+            loadFragment(itemListFragment)
+            ui.fragmentContainerView.visibility = View.VISIBLE
+        }
+
+//        ui.fragmentContainerView.getFragment<ItemListUI>()
+        ui.fragmentContainerView.setOnTouchListener { _, event ->
+            true
+        }
+
         updateDebugText()
     }
 
-    fun setObjectList(objects: List<TrackedItem>){
-        ui.rvItemList.visibility = View.VISIBLE
-        ui.rvItemList.adapter = ItemListAdapter(activity, objects)
-        ui.rvItemList.layoutManager = LinearLayoutManager(activity)
+
+    fun loadFragment(fragment: Fragment) {
+        val fragmentTransaction = fragmentManager.beginTransaction()
+
+        // replace the FrameLayout with new Fragment
+        fragmentTransaction.replace(ui.fragmentContainerView.id, fragment);
+        fragmentTransaction.commit(); // save the changes
     }
 
     fun setTarget(target : TrackedItem?) {
@@ -89,13 +123,15 @@ class UI(private val activity: CombobulatorMainActivity) {
             ui.trackingProgress.progress = 0
 
             if (target == null) {
-                ui.scanCheckbox.isChecked = false
-                ui.trackingText.text = "No target tracking"
+                ui.trackingText.text = "No current target"
             } else {
-                ui.scanCheckbox.isChecked = true
                 ui.trackingText.text = "Tracking item: ${targetName}"
             }
         }
+    }
+
+    fun hideFragment() {
+        ui.fragmentContainerView.visibility = View.INVISIBLE
     }
 
     fun classifyRequestPending() : Boolean {
@@ -208,3 +244,5 @@ class UI(private val activity: CombobulatorMainActivity) {
         }
     }
 }
+
+

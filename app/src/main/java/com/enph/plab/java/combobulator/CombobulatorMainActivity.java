@@ -113,7 +113,7 @@ public class CombobulatorMainActivity extends AppCompatActivity implements GLSur
   private final double targetDistance = 0.1;
 
   // Other UI elements
-  private UI ui;
+  public UI ui;
 
   // Augmented image configuration and rendering.
   // Load a single image (true) or a pre-generated image database (false).
@@ -487,7 +487,7 @@ public class CombobulatorMainActivity extends AppCompatActivity implements GLSur
           if (distance < targetDistance) {
             targetReached();
           } else {
-            messageSnackbarHelper.showMessage(this, "Tracking location for: " + target.getName());
+//            messageSnackbarHelper.showMessage(this, "Tracking location for: " + target.getName());
             drawNavigationArrow(projmtx, viewmtx, cameraPose, targetPose, colorCorrectionRgba);
           }
         }
@@ -503,7 +503,7 @@ public class CombobulatorMainActivity extends AppCompatActivity implements GLSur
     }
   }
 
-  void setTarget(TrackedItem newTarget){
+  public void setTarget(TrackedItem newTarget){
     target = newTarget;
     ui.setTarget(target);
     isNavigating = true;
@@ -511,7 +511,7 @@ public class CombobulatorMainActivity extends AppCompatActivity implements GLSur
 
 
   void targetReached() {
-    messageSnackbarHelper.showMessage(this, "Target found!");
+//    messageSnackbarHelper.showMessage(this, "Target found!");
 
     // stop tracking
     isNavigating = false;

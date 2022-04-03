@@ -35,10 +35,6 @@ class Classifier {
 
     val allObjScores : MutableMap<TrackedItem, List<Int>> = HashMap()
 
-    fun linkObjectsToUI(ui: UI) {
-        ui.setObjectList(allObjects)
-    }
-
     // Returns the TrackedItem that is the most visually similar to `image`
     fun evaluate(image : Image) : TrackedItem {
         return evaluate(OpenCVHelpers.imageToMat(image))

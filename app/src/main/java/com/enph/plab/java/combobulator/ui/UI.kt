@@ -3,15 +3,12 @@ package com.enph.plab.java.combobulator.ui
 import android.annotation.SuppressLint
 import android.content.res.Resources
 import android.graphics.Bitmap
-import android.view.GestureDetector
-import android.view.MotionEvent
 import android.view.View
 import android.widget.CompoundButton
 import android.widget.ImageView
-import androidx.core.view.MotionEventCompat
 import androidx.fragment.app.Fragment
 import com.enph.plab.java.combobulator.CombobulatorMainActivity
-import com.enph.plab.java.combobulator.R
+import com.enph.plab.java.combobulator.classifier.Classifier
 import com.google.ar.core.Pose
 import com.enph.plab.java.combobulator.database.TrackedItem
 import com.enph.plab.java.combobulator.databinding.ActivityMainBinding
@@ -32,10 +29,6 @@ class UI(protected val activity: CombobulatorMainActivity) {
             Utils.matToBitmap(image, bm)
             imageView.setImageBitmap(bm)
         }
-    }
-
-    enum class Mode {
-        TRACKING, EDITING
     }
 
     private val ui: ActivityMainBinding = ActivityMainBinding.inflate(activity.layoutInflater)
@@ -80,22 +73,18 @@ class UI(protected val activity: CombobulatorMainActivity) {
         itemListFragment = ItemListUI(this)
         itemEditorFragment = ItemEditorUI(this)
 
-        ui.openItemEditor.setOnClickListener {
-            loadFragment(itemEditorFragment)
-            ui.fragmentContainerView.visibility = View.VISIBLE
-        }
-
         ui.openItemList.setOnClickListener {
             loadFragment(itemListFragment)
             ui.fragmentContainerView.visibility = View.VISIBLE
         }
 
-//        ui.fragmentContainerView.getFragment<ItemListUI>()
-        ui.fragmentContainerView.setOnTouchListener { _, event ->
-            true
-        }
-
         updateDebugText()
+    }
+
+    fun openItemEditor(position: Int) {
+        val item = Classifier.allObjects[position]
+        loadFragment(itemEditorFragment)
+        itemEditorFragment.changeCurrentItem(item, position)
     }
 
 

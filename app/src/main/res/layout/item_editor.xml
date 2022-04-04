@@ -4,7 +4,8 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:layout_margin="30dp"
+    android:layout_marginHorizontal="30dp"
+    android:layout_marginVertical="60dp"
     android:orientation="vertical"
     android:theme="@style/Theme.MaterialComponents.Light">
 
@@ -53,6 +54,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:hint="X"
+                    android:inputType="numberSigned|numberDecimal"
                     android:minHeight="48dp"
                     android:singleLine="true"
                     android:textSize="24sp" />
@@ -69,6 +71,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:hint="Y"
+                    android:inputType="numberSigned|numberDecimal"
                     android:minHeight="48dp"
                     android:singleLine="true"
                     android:textSize="24sp" />
@@ -85,6 +88,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:hint="Z"
+                    android:inputType="numberSigned|numberDecimal"
                     android:minHeight="48dp"
                     android:singleLine="true"
                     android:textSize="24sp" />
@@ -115,5 +119,29 @@
 
     <androidx.recyclerview.widget.RecyclerView
         android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+        android:layout_height="match_parent"
+        android:layout_weight="1"/>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_weight="0"
+        android:layout_gravity="bottom">
+
+        <Button
+            android:id="@+id/cancelButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Cancel" />
+
+        <Button
+            android:id="@+id/saveButton"
+            style="@style/Widget.AppCompat.Button.Colored"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Save" />
+    </LinearLayout>
 </LinearLayout>

@@ -30,6 +30,7 @@ class RowItemAdapter(private val activity: CombobulatorMainActivity, private val
         val itemName: TextView = itemView.itemName
         val locateButton: Button = itemView.locateButton
         val imageView : ImageView = itemView.imageView
+        val clickTarget : View = itemView.itemClickTarget
 //        val itemRefImage: ImageView = itemView.findViewById<ImageView>(R.id.itemRefImage)
     }
 
@@ -56,6 +57,10 @@ class RowItemAdapter(private val activity: CombobulatorMainActivity, private val
             // Note this must be done explicitly because of how RecyclerView reuses previous entries
             // (otherwise image may already be set for some previous item)
             holder.imageView.setImageResource(R.drawable.ic_launcher)
+        }
+
+        holder.clickTarget.setOnClickListener {
+            activity.ui.openItemEditor(position)
         }
 
         // When the "locate" button is pressed, have the activity start tracking this item

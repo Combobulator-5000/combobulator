@@ -39,12 +39,19 @@ class ItemListUI(val parent: UI) : Fragment(R.layout.item_list), SwipeRefreshLay
         val view = inflater.inflate(layout, container, false)
         binding = ItemListBinding.bind(view)
 
+        // Set up RecyclerView with list of database items
         itemAdapter = RowItemAdapter(activity, Classifier.allObjects)
         binding.rvItemList.adapter = itemAdapter
         binding.rvItemList.layoutManager = LinearLayoutManager(activity)
 
+        binding.newItem.setOnClickListener {
+            parent.itemEditorFragment.newItem()
+            parent.loadFragment(parent.itemEditorFragment)
+        }
+
         binding.swipeContainer.setOnRefreshListener(this)
 
+        // Clicking "back" returns user to main tracking screen
         requireActivity().onBackPressedDispatcher.addCallback(this) {
             parent.hideFragment()
         }

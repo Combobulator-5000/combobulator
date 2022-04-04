@@ -2,36 +2,46 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical">
+    android:orientation="vertical"
+    android:layout_marginBottom="50dp"
+    android:layout_marginTop="20dp"
+    android:background="#DDDDDD">
 
     <Button
         android:id="@+id/button"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Manage (admin only)" />
+        android:text="Manage (admin only)"
+        android:visibility="gone" />
 
     <SearchView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content" />
-
-    <Button
-        android:id="@+id/newItem"
+        style="@android:style/Widget.Material.SearchView"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="New Item" />
+        android:background="@android:color/darker_gray"
+        android:visibility="gone">
+
+    </SearchView>
 
     <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
         android:id="@+id/swipe_container"
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="match_parent"
+        android:layout_weight="1">
 
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/rvItemList"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:background="#97FFEB3B"
             android:padding="10dp" />
 
     </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
+
+    <Button
+        android:id="@+id/newItem"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_weight="0"
+        android:text="New Item" />
 
 </LinearLayout>

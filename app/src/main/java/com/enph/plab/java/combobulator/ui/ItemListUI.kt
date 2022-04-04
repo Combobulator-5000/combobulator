@@ -65,14 +65,8 @@ class ItemListUI(val parent: UI) : Fragment(R.layout.item_list), SwipeRefreshLay
 
         // TODO: check database for updates
 
-        itemAdapter.newItem()
-
+        // TODO: only notify about changes, not whole dataset
         itemAdapter.notifyDataSetChanged()
         binding.swipeContainer.isRefreshing = false
-    }
-
-
-    fun openEditor(item: TrackedItem) {
-        // TODO
     }
 }

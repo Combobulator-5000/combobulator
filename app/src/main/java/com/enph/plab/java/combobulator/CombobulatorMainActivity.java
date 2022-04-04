@@ -126,6 +126,13 @@ public class CombobulatorMainActivity extends AppCompatActivity implements GLSur
   private TrackedItem target;
   private App app;
 
+  enum DataSource {
+    REALM,
+    JSON
+  }
+
+  private DataSource dataSource = DataSource.REALM;
+
   // This is an authenticated connection to the Realm Sync instance;
   // it can be used to store or retrieve data.
   private Realm realm;
@@ -139,47 +146,56 @@ public class CombobulatorMainActivity extends AppCompatActivity implements GLSur
   }
 
   protected void setupDatabase() {
-    Realm.init(this);
-    String appID = "combobulator9k-tlrvq";
-    app = new App(new AppConfiguration.Builder(appID).build());
-    Credentials credentials = Credentials.anonymous();
-    app.loginAsync(credentials, result -> {
-      if (result.isSuccess()) {
-        Log.v("Realm", "Database authenticated.");
-        User user = app.currentUser();
-        String paritionValue = "plab";
-        SyncConfiguration config = new SyncConfiguration.Builder(user, paritionValue)
-                .allowQueriesOnUiThread(true)
-                .allowWritesOnUiThread(true)
-                .build();
-        realm = Realm.getInstance(config);
 
-        new ChangeListener(realm, this).run();
+    switch(dataSource){
+      case REALM:
+        Realm.init(this);
+        String appID = "combobulator9k-tlrvq";
+        app = new App(new AppConfiguration.Builder(appID).build());
+        Credentials credentials = Credentials.anonymous();
+        app.loginAsync(credentials, result -> {
+          if (result.isSuccess()) {
+            Log.v("Realm", "Database authenticated.");
+            User user = app.currentUser();
+            String paritionValue = "plab";
+            SyncConfiguration config = new SyncConfiguration.Builder(user, paritionValue)
+                    .allowQueriesOnUiThread(true)
+                    .allowWritesOnUiThread(true)
+                    .build();
+            realm = Realm.getInstance(config);
 
-        for(String name : Arrays.asList("fork")) {
-          Pose pose = Pose.makeTranslation(0.5f, 1.3f, 0.75f);
-          ArrayList<Mat> images = new ArrayList<Mat>();
+            new ChangeListener(realm, this).run();
 
-          for (int i = 1; i <= 3; i++) {
-            @SuppressLint("DefaultLocale") String filename = String.format("classifier_test_images/%s%d.jpg", name, i);
-            images.add(OpenCVHelpers.readImageMatFromAsset(filename, this));
-          }
+            for(String name : Arrays.asList("fork")) {
+              Pose pose = Pose.makeTranslation(0.5f, 1.3f, 0.75f);
+              ArrayList<Mat> images = new ArrayList<Mat>();
 
-          RealmTrackedItem item = new RealmTrackedItem(name, pose, images);
-          realm.executeTransaction(transactionRealm -> {
-            Log.v("Realm", "pushing object");
+              for (int i = 1; i <= 3; i++) {
+                @SuppressLint("DefaultLocale") String filename = String.format("classifier_test_images/%s%d.jpg", name, i);
+                images.add(OpenCVHelpers.readImageMatFromAsset(filename, this));
+              }
+
+              RealmTrackedItem item = new RealmTrackedItem(name, pose, images);
+              realm.executeTransaction(transactionRealm -> {
+                Log.v("Realm", "pushing object");
 //            transactionRealm.insert(item);
 //          transactionRealm.commitTransaction();
-          });
-        }
+              });
+            }
 
 //        FutureTask<String> task = new FutureTask(new BackgroundQuickStart(app.currentUser(), this), "Test");
 //        ExecutorService executorService = Executors.newFixedThreadPool(2);
 //        executorService.execute(task);
-      } else {
-        Log.e("Realm", "Failed to authenticate: " + result.getError());
-      }
-    });
+          } else {
+            Log.e("Realm", "Failed to authenticate: " + result.getError());
+          }
+        });
+        break;
+
+      case JSON:
+        workspace.setupTrackedItemDatabase();
+        break;
+    }
 
     try {
       classifier.loadMatcherParams(getAssets().open("matcher_params.yaml"));
@@ -243,6 +259,8 @@ public class CombobulatorMainActivity extends AppCompatActivity implements GLSur
       return;
     }
 
+    workspace = new Workspace("workspaces/default.json", this);
+    localizer = new AugmentedImagesLocalizer(workspace);
     classifier = new Classifier();
     setupDatabase();
 
@@ -264,9 +282,6 @@ public class CombobulatorMainActivity extends AppCompatActivity implements GLSur
 
     installRequested = false;
 
-
-    workspace = new Workspace("workspaces/default.json", this);
-    localizer = new AugmentedImagesLocalizer(workspace);
   }
 
   @Override

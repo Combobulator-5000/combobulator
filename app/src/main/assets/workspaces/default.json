@@ -14,6 +14,51 @@
               "width": 0.11,
               "description": "Test location for developing the json file. Marker normal aligned on world axis X"
             }
+          ],
+  "objects" :
+          [
+            {
+              "name": "fork",
+              "x": 0.0,
+              "y": 0.0,
+              "z": 0.0,
+              "images_path": "classifier_test_images/fork"
+            },
+            {
+              "name": "lock",
+              "x": 0.0,
+              "y": 0.0,
+              "z": 0.0,
+              "images_path": "classifier_test_images/lock"
+            },
+            {
+              "name": "marker",
+              "x": 0.0,
+              "y": 0.0,
+              "z": 0.0,
+              "images_path": "classifier_test_images/marker"
+            },
+            {
+              "name": "pliers",
+              "x": 0.0,
+              "y": 0.0,
+              "z": 0.0,
+              "images_path": "classifier_test_images/pliers"
+            },
+            {
+              "name": "scissors",
+              "x": 0.0,
+              "y": 0.0,
+              "z": 0.0,
+              "images_path": "classifier_test_images/scissors"
+            },
+            {
+              "name": "tape",
+              "x": 0.0,
+              "y": 0.0,
+              "z": 0.0,
+              "images_path": "classifier_test_images/tape"
+            }
           ]
 }
 

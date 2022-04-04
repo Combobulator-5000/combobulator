@@ -8,9 +8,13 @@ import com.google.ar.core.AugmentedImageDatabase
 import com.google.ar.core.Pose
 import com.google.ar.core.Session
 import com.enph.plab.java.combobulator.CombobulatorMainActivity
+import com.enph.plab.java.combobulator.OpenCVHelpers
+import com.enph.plab.java.combobulator.classifier.Classifier
+import com.enph.plab.java.combobulator.database.TrackedItem
 import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
+import org.opencv.core.Mat
 import java.io.IOException
 import java.lang.NullPointerException
 import kotlin.math.sqrt
@@ -39,19 +43,53 @@ class Workspace(fileName : String, val context : Context, private val imgdbPath 
 
     private val poseMap : MutableMap<Int, Pose> = HashMap()
     private val markerList : JSONArray
+    private val objectList : JSONArray
 
     init {
         // Load fiducial mapping
         val inputStream = context.assets.open(fileName)
         val out = inputStream.readBytes().toString(Charsets.UTF_8)
+        val jsonObject = JSONObject(out)
         Log.v("Reading from json:", out)
-        markerList = JSONObject(out).getJSONArray("markers")
+        markerList = jsonObject.getJSONArray("markers")
+        objectList = jsonObject.getJSONArray("objects")
     }
 
     fun getCalibrationPointPose(index: Int): Pose {
         return mapIdToLocation(index)
             ?: throw NullPointerException("index is not linked to any pose in the workspace")
     }
+
+    fun setupTrackedItemDatabase() {
+        for (i in 0 until objectList.length()) {
+            val data = objectList.getJSONObject(i)
+
+
+            try {
+                val name = data.get("name") as String
+                val pose = parsePoseFromJSON(data, translationOnly = true)
+
+                val imagesPath = data.get("images_path") as String
+                val allFiles = context.assets.list(imagesPath)
+
+                if (allFiles != null) {
+                    val images = allFiles.map { file ->
+                        OpenCVHelpers.readImageMatFromAsset("$imagesPath/$file", context)
+                    }.toMutableList()
+
+                    Classifier.addItem(TrackedItem(name, pose, images))
+                }
+
+            } catch (e : JSONException) {
+                Log.e(TAG, "Could not add entry into database: " +
+                        "JSON not properly formatted.", e
+                )
+            }
+
+
+        }
+    }
+
 
     fun setupAugmentedImagesWorkspace(session : Session) : AugmentedImageDatabase? {
 
@@ -115,10 +153,12 @@ class Workspace(fileName : String, val context : Context, private val imgdbPath 
         return if(poseMap.containsKey(id)) poseMap[id] else null
     }
 
-    private fun parsePoseFromJSON(data : JSONObject) : Pose {
+    private fun parsePoseFromJSON(data : JSONObject, translationOnly : Boolean = false) : Pose {
         val translation = Pose.makeTranslation(
             translationKeys.map { (data.get(it) as Double).toFloat() }.toFloatArray()
         )
+        if (translationOnly) return translation;
+
         val rotation = Pose.makeRotation(
             rotationKeys.map { (data.get(it) as Double).toFloat() }.toFloatArray()
         )

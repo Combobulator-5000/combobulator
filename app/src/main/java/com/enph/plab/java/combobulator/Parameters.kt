@@ -6,6 +6,7 @@ const val REALM = 1
 
 
 const val DATASOURCE = JSON
+const val WORKSPACE_FILE = "workspaces/default.json"
 
 // Classifier
 const val CLASSIFIER_DISTANCE_RATIO = 0.7

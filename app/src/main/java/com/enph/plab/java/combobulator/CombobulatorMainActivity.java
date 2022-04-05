@@ -20,6 +20,7 @@ import static com.enph.plab.java.combobulator.ParametersKt.DATASOURCE;
 import static com.enph.plab.java.combobulator.ParametersKt.FLANN_MATCHER_PARAMS;
 import static com.enph.plab.java.combobulator.ParametersKt.JSON;
 import static com.enph.plab.java.combobulator.ParametersKt.REALM;
+import static com.enph.plab.java.combobulator.ParametersKt.WORKSPACE_FILE;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
@@ -270,7 +271,7 @@ public class CombobulatorMainActivity extends AppCompatActivity implements GLSur
       return;
     }
 
-    workspace = new Workspace("workspaces/default.json", this);
+    workspace = new Workspace(WORKSPACE_FILE, this);
     localizer = new AugmentedImagesLocalizer(workspace);
     classifier = new Classifier();
     setupDatabase();

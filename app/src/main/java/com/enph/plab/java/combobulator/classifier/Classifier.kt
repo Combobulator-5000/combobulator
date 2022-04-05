@@ -2,6 +2,7 @@ package com.enph.plab.java.combobulator.classifier
 
 import android.media.Image
 import android.util.Log
+import com.enph.plab.java.combobulator.CLASSIFIER_DISTANCE_RATIO
 import com.enph.plab.java.combobulator.OpenCVHelpers
 import com.enph.plab.java.combobulator.ui.UI
 import com.enph.plab.java.combobulator.database.TrackedItem
@@ -20,7 +21,7 @@ class Classifier {
         var allObjects : MutableList<TrackedItem> = ArrayList()
 
         const val TAG = "classifier"
-        const val DISTANCE_RATIO = 0.7
+        const val DISTANCE_RATIO = CLASSIFIER_DISTANCE_RATIO
 
         @Synchronized
         fun addItem(item: TrackedItem) {

@@ -16,6 +16,11 @@
 
 package com.enph.plab.java.combobulator;
 
+import static com.enph.plab.java.combobulator.ParametersKt.DATASOURCE;
+import static com.enph.plab.java.combobulator.ParametersKt.FLANN_MATCHER_PARAMS;
+import static com.enph.plab.java.combobulator.ParametersKt.JSON;
+import static com.enph.plab.java.combobulator.ParametersKt.REALM;
+
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.graphics.Bitmap;
@@ -132,8 +137,7 @@ public class CombobulatorMainActivity extends AppCompatActivity implements GLSur
   private TrackedItem target;
   private App app;
 
-  enum DataSource {REALM, JSON}
-  private final DataSource dataSource = DataSource.JSON;
+  private final int dataSource = DATASOURCE;
 
   public enum Mode {USER, ADMIN}
   private Mode mode = Mode.USER;
@@ -203,7 +207,7 @@ public class CombobulatorMainActivity extends AppCompatActivity implements GLSur
     }
 
     try {
-      classifier.loadMatcherParams(getAssets().open("matcher_params.yaml"));
+      classifier.loadMatcherParams(getAssets().open(FLANN_MATCHER_PARAMS));
     } catch (IOException e) {
       e.printStackTrace();
     }

@@ -10,6 +10,7 @@ import android.widget.ImageView
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.Lifecycle
 import com.enph.plab.java.combobulator.CombobulatorMainActivity
+import com.enph.plab.java.combobulator.DEBUG_ON_AT_STARTUP
 import com.enph.plab.java.combobulator.OpenCVHelpers
 import com.enph.plab.java.combobulator.classifier.Classifier
 import com.google.ar.core.Pose
@@ -26,8 +27,6 @@ import java.lang.NullPointerException
 class UI(protected val activity: CombobulatorMainActivity) {
 
     companion object {
-        const val DEBUG_ON_AT_STARTUP = false
-
         var miscData : MutableMap<String, String> = HashMap()
     }
 

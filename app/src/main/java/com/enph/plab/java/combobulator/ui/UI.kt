@@ -19,6 +19,7 @@ import com.enph.plab.java.common.helpers.SnackbarHelper
 import com.google.ar.core.Track
 import org.opencv.android.Utils
 import org.opencv.core.Mat
+import java.lang.NullPointerException
 
 
 @SuppressLint("ClickableViewAccessibility")
@@ -84,8 +85,7 @@ class UI(protected val activity: CombobulatorMainActivity) {
         }
 
         ui.reachedTargetDismiss.setOnClickListener {
-            ui.reachedTargetHint.visibility = View.GONE
-            setTarget(null)
+            ui.reachedTargetHint.visibility = View.INVISIBLE
         }
 
         updateDebugText()
@@ -146,17 +146,16 @@ class UI(protected val activity: CombobulatorMainActivity) {
     }
 
     fun targetReached() {
-
-        if (target != null && target!!.locationRefImage != null) {
-            displayImage(target!!.locationRefImage!!, ui.reachedTargetImage)
-            ui.reachedTargetHint.visibility = View.VISIBLE
+        if (target != null){
+            if (target!!.locationRefImage != null) {
+                showMessage("image available")
+                activity.runOnUiThread {
+                    ui.reachedTargetHint.visibility = View.VISIBLE
+                    displayImage(target!!.locationRefImage!!, ui.reachedTargetImage)
+                    setTarget(null)
+                }
+            }
         }
-
-//        target?.locationRefImage?.let {
-//            displayImage(it, ui.reachedTargetImage)
-//            ui.reachedTargetHint.visibility = View.VISIBLE
-//        }
-        setTarget(null)
     }
 
     fun setTarget(target : TrackedItem?) {
@@ -232,11 +231,11 @@ class UI(protected val activity: CombobulatorMainActivity) {
                 "X: - \nY: - \nZ: - \n"
             }
 
-            val trackingText: String = if (tracking) {
-                val t = targetLocation
+            val trackingText: String = if (target != null) {
+                val t = target!!.location
                 String.format(
                     "Tracking: %s \n\t [%.2f %.2f %.2f]",
-                    targetName, t.tx(), t.ty(), t.tz()
+                    target!!.name, t.tx(), t.ty(), t.tz()
                 )
             } else {
                 "Tracking: - \n\t [--  --  --]"

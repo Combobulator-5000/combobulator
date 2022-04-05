@@ -20,7 +20,7 @@ class OpenCVHelpers {
 
     companion object {
 
-        val sift = SIFT.create()
+        private val sift: SIFT = SIFT.create()
 
         fun getDescriptors(image : Mat) : Mat {
             val descriptors = Mat()
@@ -40,19 +40,6 @@ class OpenCVHelpers {
             return mat
         }
 
-//        fun imageToBitmap(image: Image) : Bitmap {
-//            val buffer = image.planes[0].buffer
-//            val bytes = ByteArray(buffer.capacity())
-////            buffer[bytes]
-//            (buffer.duplicate().clear() as ByteBuffer)[bytes]
-//
-//
-////            UI.miscData["buffer"] = bytes.joinToString(" ")
-//            val bitmapImage = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
-//
-//            return bitmapImage
-//        }
-
         private fun YUV_420_888toNV21(image: Image): ByteArray? {
             val nv21: ByteArray
             val yBuffer = image.planes[0].buffer
@@ -71,86 +58,20 @@ class OpenCVHelpers {
         }
 
         fun imageToMat(image: Image):Mat {
-//            val width = image.width
-//            val height = image.height
-//            val frame = image.planes[0].buffer
-//            val data = ByteArray(frame.capacity())
-//            (frame.duplicate().clear() as ByteBuffer)[data]
 
-            try {
                 val data = YUV_420_888toNV21(image)
-                val width = image.width
-                val height = image.height
 
-                val yuv = YuvImage(data, ImageFormat.NV21, width, height, null)
+                val yuv = YuvImage(data, ImageFormat.NV21, image.width, image.height, null)
                 val out = ByteArrayOutputStream()
-
-                yuv.compressToJpeg(Rect(0,0,width, height), 50, out)
+                yuv.compressToJpeg(Rect(0,0, image.width, image.height), 50, out)
 
                 val bytes = out.toByteArray()
                 val bm = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
 
                 val mat = Mat()
-
                 Utils.bitmapToMat(bm, mat)
                 return mat
-
-            } catch (e: Exception){
-                Log.e("OpenCV", e.stackTraceToString())
-                throw e
-            }
         }
-
-
-
-//        // Converts Java Image to OpenCV Mat
-//        fun imageToMat(image: Image): Mat {
-//
-//            val width = image.width
-//            val height = image.height
-//            val frame = image.planes[0].buffer
-//            val data = ByteArray(frame.capacity())
-//            (frame.duplicate().clear() as ByteBuffer)[data]
-//
-//            try {
-//                val yuv = YuvImage(data, ImageFormat.NV21, width, height, null)
-//                val out = ByteArrayOutputStream()
-//
-//                yuv.compressToJpeg(Rect(0,0,width, height), 100, out)
-//
-//                val bytes = out.toByteArray()
-//                val bm = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
-//
-//                val mat = Mat()
-//
-//                Utils.bitmapToMat(bm, mat)
-////                val mat = Mat(image.height, image.width, CvType.CV_8UC3)
-////                mat.put(0, 0, bytes)
-//                return mat
-//
-//            } catch (e: Exception){
-//                Log.e("OpenCV", e.stackTraceToString())
-//                throw e
-//            }
-
-
-
-            // Create a buffered image with transparency
-
-//            // Create a buffered image with transparency
-//            val bimage: java.awt.image.BufferedImage = java.awt.image.BufferedImage(
-//                img.getWidth(null),
-//                img.getHeight(null),
-//                java.awt.image.BufferedImage.TYPE_INT_ARGB
-//            )
-
-
-            // Construct OpenCV Mat object from Image
-//            val frame = image.planes[0].buffer
-//            val data = ByteArray(frame.capacity())
-//            (frame.duplicate().clear() as ByteBuffer)[data]
-
-//        }
 
         // Converts OpenCV Mat to ByteBuffer (necessary if we want to render any OpenCV images on screen)
         fun matToByteBuffer(mat: Mat): ByteBuffer {

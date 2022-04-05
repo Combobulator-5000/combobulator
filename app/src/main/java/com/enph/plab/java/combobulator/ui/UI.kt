@@ -148,7 +148,6 @@ class UI(protected val activity: CombobulatorMainActivity) {
     fun targetReached() {
         if (target != null){
             if (target!!.locationRefImage != null) {
-                showMessage("image available")
                 activity.runOnUiThread {
                     ui.reachedTargetHint.visibility = View.VISIBLE
                     displayImage(target!!.locationRefImage!!, ui.reachedTargetImage)

@@ -4,7 +4,6 @@ import android.annotation.SuppressLint
 import android.content.res.Resources
 import android.graphics.Bitmap
 import android.media.Image
-import android.provider.ContactsContract
 import android.view.View
 import android.widget.CompoundButton
 import android.widget.ImageView
@@ -16,6 +15,7 @@ import com.enph.plab.java.combobulator.classifier.Classifier
 import com.google.ar.core.Pose
 import com.enph.plab.java.combobulator.database.TrackedItem
 import com.enph.plab.java.combobulator.databinding.ActivityMainBinding
+import com.enph.plab.java.common.helpers.SnackbarHelper
 import org.opencv.android.Utils
 import org.opencv.core.Mat
 
@@ -24,17 +24,18 @@ import org.opencv.core.Mat
 class UI(protected val activity: CombobulatorMainActivity) {
 
     companion object {
-        const val ON_AT_STARTUP = true
+        const val DEBUG_ON_AT_STARTUP = false
 
         var miscData : MutableMap<String, String> = HashMap()
     }
 
-//    var capturer: ImageCapturer = ImageCapturer()
-
     private val ui: ActivityMainBinding = ActivityMainBinding.inflate(activity.layoutInflater)
+
+    lateinit var messageSnackbarHelper: SnackbarHelper
 
     // Shortcuts to elements that the activity needs access to
     val surfaceView = ui.surfaceview
+    val auxButton = ui.auxiliaryButton
 
     val fragmentManager = activity.supportFragmentManager
     val itemListFragment : ItemListUI
@@ -62,7 +63,7 @@ class UI(protected val activity: CombobulatorMainActivity) {
         ui.mainDebugText.setHorizontallyScrolling(true)
 
         // Debug panel & switch configuration
-        ui.debugSwitch.isChecked = ON_AT_STARTUP
+        ui.debugSwitch.isChecked = DEBUG_ON_AT_STARTUP
         ui.debugSwitch.setOnCheckedChangeListener { _: CompoundButton, checked: Boolean ->
             setDebugPanelVisibility(checked)
         }
@@ -73,6 +74,8 @@ class UI(protected val activity: CombobulatorMainActivity) {
         itemListFragment = ItemListUI(this)
         itemEditorFragment = ItemEditorUI(this)
 
+        setupAuxButton()
+
         ui.openItemList.setOnClickListener {
             loadFragment(itemListFragment)
             ui.fragmentContainerView.visibility = View.VISIBLE
@@ -81,12 +84,25 @@ class UI(protected val activity: CombobulatorMainActivity) {
         updateDebugText()
     }
 
-    fun captureImage(image: Image){
+    private fun setupAuxButton() {
+        auxButton.visibility = View.VISIBLE
+        auxButton.setOnClickListener {
+            loadFragment(itemListFragment)
+            ui.fragmentContainerView.visibility = View.VISIBLE
+        }
+        auxButton.text = "Item List"
+    }
+
+    fun showMessage(msg: String){
+        messageSnackbarHelper.showMessageWithDismiss(activity, msg)
+    }
+
+    fun captureImage(image: Image, currentPose: Pose?){
         val mat = OpenCVHelpers.imageToMat(image)
 
         activity.runOnUiThread {
             if (itemEditorFragment.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) {
-                itemEditorFragment.captureImage(mat)
+                itemEditorFragment.captureImage(mat, currentPose)
             }
         }
     }
@@ -99,11 +115,13 @@ class UI(protected val activity: CombobulatorMainActivity) {
 
     fun exitMenus() {
         activity.enterMode(CombobulatorMainActivity.Mode.USER)
+        setupAuxButton()
         hideFragment()
     }
 
     fun loadFragment(fragment: Fragment) {
         activity.enterMode(CombobulatorMainActivity.Mode.ADMIN)
+        auxButton.visibility = View.INVISIBLE
 
         val fragmentTransaction = fragmentManager.beginTransaction()
 
@@ -159,21 +177,11 @@ class UI(protected val activity: CombobulatorMainActivity) {
         }
     }
 
-    fun displayImage(bm: Bitmap) {
-        activity.runOnUiThread { ui.debugImageView.setImageBitmap(bm) }
-    }
-
     fun displayImage(image : Mat, imageView : ImageView) {
         activity.runOnUiThread {
-            try {
-                val bm = Bitmap.createBitmap(image.cols(), image.rows(), Bitmap.Config.ARGB_8888)
-                this["bm dims"] = bm.height.toString() + bm.width.toString()
-                Utils.matToBitmap(image, bm)
-                imageView.setImageBitmap(bm)
-            } catch (e: Exception) {
-                this["error"] = e.toString()
-            }
-
+            val bm = Bitmap.createBitmap(image.cols(), image.rows(), Bitmap.Config.ARGB_8888)
+            Utils.matToBitmap(image, bm)
+            imageView.setImageBitmap(bm)
         }
     }
 

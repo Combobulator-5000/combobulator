@@ -252,7 +252,9 @@ public class CombobulatorMainActivity extends AppCompatActivity implements GLSur
   protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
 
+
     ui = new UI(this);
+    ui.setMessageSnackbarHelper(messageSnackbarHelper);
     ui.setMinDistance(targetDistance);
     surfaceView = ui.getSurfaceView();
 
@@ -471,7 +473,6 @@ public class CombobulatorMainActivity extends AppCompatActivity implements GLSur
       ui.setPositionCalibrated(localizer.getCalibrated());
 
 
-      // TODO: a similar structure to this would need to be used in an admin workflow.
       // If the ui has a takeImageRequestPending (or something), the image here needs to
       // be pushed to the database
       if (ui.classifyRequestPending()) {
@@ -479,8 +480,6 @@ public class CombobulatorMainActivity extends AppCompatActivity implements GLSur
         try (Image image = frame.acquireCameraImage()) {
           switch (mode) {
             case USER:
-              ui.set("button press", "classify");
-
               Mat mat = OpenCVHelpers.Companion.imageToMat(image);
               displayImage(mat);
               setTarget(classifier.evaluate(mat));
@@ -492,8 +491,8 @@ public class CombobulatorMainActivity extends AppCompatActivity implements GLSur
               }
               break;
             case ADMIN:
-              ui.set("button press", "capture");
-              ui.captureImage(image);
+              Pose currentPose = localizer.convertToAbsPose(camera.getPose());
+              ui.captureImage(image, currentPose);
           }
         }
       }

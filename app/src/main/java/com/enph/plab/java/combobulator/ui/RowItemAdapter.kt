@@ -50,8 +50,10 @@ class RowItemAdapter(private val activity: CombobulatorMainActivity, private val
 
         holder.itemName.text = item.name
 
-        if (item.images.size > 0) {
-            activity.displayImage(holder.imageView, item.images[0])
+        val refImage = item.getRefImage()
+
+        if (refImage != null) {
+            activity.displayImage(holder.imageView, refImage)
         } else {
             // Set to default image if no reference image provided
             // Note this must be done explicitly because of how RecyclerView reuses previous entries

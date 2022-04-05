@@ -185,6 +185,18 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         android:text="Show debug" />
+
+    <Button
+        android:id="@+id/auxiliaryButton"
+        style="@style/Widget.AppCompat.Button.Colored"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="16dp"
+        android:text="Done"
+        android:visibility="invisible"
+        app:layout_constraintBottom_toTopOf="@+id/debugSwitch"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
   </androidx.constraintlayout.widget.ConstraintLayout>
 
   <androidx.fragment.app.FragmentContainerView

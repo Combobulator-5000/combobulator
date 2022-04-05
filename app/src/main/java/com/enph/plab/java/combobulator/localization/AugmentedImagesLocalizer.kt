@@ -18,8 +18,8 @@ class AugmentedImagesLocalizer(private val workspace: Workspace) {
     val calibrationMap : MutableMap<Int, CalibrationPoint> = HashMap()
     var currentAbsTransform : Pose? = null
 
-    fun convertToAbsPose(framePose : Pose) : Pose {
-        return currentAbsTransform!!.compose(framePose)
+    fun convertToAbsPose(framePose : Pose) : Pose? {
+        return currentAbsTransform?.compose(framePose)
     }
 
     fun convertToFramePose(absPose : Pose) : Pose {

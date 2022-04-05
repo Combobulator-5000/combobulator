@@ -49,6 +49,10 @@ class ItemListUI(val parent: UI) : Fragment(R.layout.item_list), SwipeRefreshLay
             parent.loadFragment(parent.itemEditorFragment)
         }
 
+        binding.itemListBackButton.setOnClickListener {
+            parent.exitMenus()
+        }
+
         binding.swipeContainer.setOnRefreshListener(this)
 
         // Clicking "back" returns user to main tracking screen

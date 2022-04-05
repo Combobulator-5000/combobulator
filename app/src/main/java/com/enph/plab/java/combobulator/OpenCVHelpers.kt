@@ -6,7 +6,7 @@ import android.media.Image
 import android.util.Log
 import com.enph.plab.java.combobulator.ui.UI
 import org.opencv.android.Utils
-import org.opencv.core.CvType
+import org.opencv.core.Core
 import org.opencv.core.Mat
 import org.opencv.core.MatOfKeyPoint
 import org.opencv.features2d.SIFT
@@ -40,7 +40,7 @@ class OpenCVHelpers {
             return mat
         }
 
-        private fun YUV_420_888toNV21(image: Image): ByteArray? {
+        private fun YUV_420_888toNV21(image: Image): ByteArray {
             val nv21: ByteArray
             val yBuffer = image.planes[0].buffer
             val uBuffer = image.planes[1].buffer
@@ -70,6 +70,8 @@ class OpenCVHelpers {
 
                 val mat = Mat()
                 Utils.bitmapToMat(bm, mat)
+                Core.rotate(mat,mat, Core.ROTATE_90_CLOCKWISE)
+
                 return mat
         }
 

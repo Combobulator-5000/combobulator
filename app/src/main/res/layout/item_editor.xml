@@ -103,16 +103,19 @@
             android:orientation="vertical">
 
             <ImageView
-                android:id="@+id/imageView2"
+                android:id="@+id/helperImage"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                tools:srcCompat="@tools:sample/avatars" />
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:clickable="true"
+                tools:srcCompat="@android:drawable/ic_input_add" />
 
             <TextView
                 android:id="@+id/textView2"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Calibrate Automatically" />
+                android:text="Calibrate Automatically"
+                android:layout_gravity="center_horizontal" />
         </LinearLayout>
 
     </LinearLayout>

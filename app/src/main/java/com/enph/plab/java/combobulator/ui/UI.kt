@@ -3,11 +3,15 @@ package com.enph.plab.java.combobulator.ui
 import android.annotation.SuppressLint
 import android.content.res.Resources
 import android.graphics.Bitmap
+import android.media.Image
+import android.provider.ContactsContract
 import android.view.View
 import android.widget.CompoundButton
 import android.widget.ImageView
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.Lifecycle
 import com.enph.plab.java.combobulator.CombobulatorMainActivity
+import com.enph.plab.java.combobulator.OpenCVHelpers
 import com.enph.plab.java.combobulator.classifier.Classifier
 import com.google.ar.core.Pose
 import com.enph.plab.java.combobulator.database.TrackedItem
@@ -23,13 +27,9 @@ class UI(protected val activity: CombobulatorMainActivity) {
         const val ON_AT_STARTUP = true
 
         var miscData : MutableMap<String, String> = HashMap()
-
-        fun displayImage(image : Mat, imageView : ImageView) {
-            val bm = Bitmap.createBitmap(image.cols(), image.rows(), Bitmap.Config.ARGB_8888)
-            Utils.matToBitmap(image, bm)
-            imageView.setImageBitmap(bm)
-        }
     }
+
+//    var capturer: ImageCapturer = ImageCapturer()
 
     private val ui: ActivityMainBinding = ActivityMainBinding.inflate(activity.layoutInflater)
 
@@ -81,19 +81,47 @@ class UI(protected val activity: CombobulatorMainActivity) {
         updateDebugText()
     }
 
+    fun captureImage(image: Image){
+        val mat = OpenCVHelpers.imageToMat(image)
+
+        activity.runOnUiThread {
+            if (itemEditorFragment.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) {
+                itemEditorFragment.captureImage(mat)
+            }
+        }
+    }
+
     fun openItemEditor(position: Int) {
         val item = Classifier.allObjects[position]
         loadFragment(itemEditorFragment)
         itemEditorFragment.changeCurrentItem(item, position)
     }
 
+    fun exitMenus() {
+        activity.enterMode(CombobulatorMainActivity.Mode.USER)
+        hideFragment()
+    }
 
     fun loadFragment(fragment: Fragment) {
+        activity.enterMode(CombobulatorMainActivity.Mode.ADMIN)
+
         val fragmentTransaction = fragmentManager.beginTransaction()
 
         // replace the FrameLayout with new Fragment
         fragmentTransaction.replace(ui.fragmentContainerView.id, fragment);
         fragmentTransaction.commit(); // save the changes
+    }
+
+    fun hideFragment() {
+        ui.fragmentContainerView.visibility = View.INVISIBLE
+    }
+
+    fun showFragment() {
+        ui.fragmentContainerView.visibility = View.VISIBLE
+    }
+
+    fun isFragmentVisible() : Boolean {
+        return ui.fragmentContainerView.visibility == View.VISIBLE
     }
 
     fun setTarget(target : TrackedItem?) {
@@ -119,9 +147,7 @@ class UI(protected val activity: CombobulatorMainActivity) {
         }
     }
 
-    fun hideFragment() {
-        ui.fragmentContainerView.visibility = View.INVISIBLE
-    }
+
 
     fun classifyRequestPending() : Boolean {
         return classifyRequestQueue.poll()
@@ -133,10 +159,22 @@ class UI(protected val activity: CombobulatorMainActivity) {
         }
     }
 
+    fun displayImage(bm: Bitmap) {
+        activity.runOnUiThread { ui.debugImageView.setImageBitmap(bm) }
+    }
+
     fun displayImage(image : Mat, imageView : ImageView) {
-        val bm = Bitmap.createBitmap(image.cols(), image.rows(), Bitmap.Config.ARGB_8888)
-        Utils.matToBitmap(image, bm)
-        imageView.setImageBitmap(bm)
+        activity.runOnUiThread {
+            try {
+                val bm = Bitmap.createBitmap(image.cols(), image.rows(), Bitmap.Config.ARGB_8888)
+                this["bm dims"] = bm.height.toString() + bm.width.toString()
+                Utils.matToBitmap(image, bm)
+                imageView.setImageBitmap(bm)
+            } catch (e: Exception) {
+                this["error"] = e.toString()
+            }
+
+        }
     }
 
     fun displayImage(image : Mat) {
@@ -213,6 +251,8 @@ class UI(protected val activity: CombobulatorMainActivity) {
             }
         }
     }
+
+
 
     // Handles capturing button clicks and passing the info between UI thread and the main
     // activity's onDrawFrame method

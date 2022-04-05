@@ -1,5 +1,7 @@
 package com.enph.plab.java.combobulator.ui
 
+import android.graphics.drawable.Drawable
+import android.media.Image
 import com.enph.plab.java.combobulator.databinding.ItemEditorBinding
 import android.os.Bundle
 import android.util.Log
@@ -9,12 +11,14 @@ import android.view.ViewGroup
 import androidx.activity.addCallback
 import androidx.fragment.app.Fragment
 import com.enph.plab.java.combobulator.CombobulatorMainActivity
+import com.enph.plab.java.combobulator.OpenCVHelpers
 import com.enph.plab.java.combobulator.R
 import com.enph.plab.java.combobulator.classifier.Classifier
 import com.enph.plab.java.combobulator.database.TrackedItem
 import com.google.android.material.textfield.TextInputLayout
 import com.google.ar.core.Pose
 import com.google.ar.core.Track
+import org.opencv.core.Mat
 
 //RecyclerView.ViewHolder(itemView)
 
@@ -28,8 +32,18 @@ class ItemEditorUI(val parent: UI) : Fragment(R.layout.item_editor) {
     lateinit var activity: CombobulatorMainActivity
     lateinit var binding: ItemEditorBinding
 
+    enum class ImageListener {NONE, REF_IMAGE, SCANS}
+    var imageListenerMode = ImageListener.NONE
+    var refImage: Mat? = null
+    var scans: MutableList<Mat> = ArrayList()
+
     var activeItem: TrackedItem? = null
-    var activeItemPosition = NEW
+    private var activeItemPosition = NEW
+
+    // The Editor screen needs to be able to
+    override fun onHiddenChanged(hidden: Boolean) {
+        super.onHiddenChanged(hidden)
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -44,9 +58,21 @@ class ItemEditorUI(val parent: UI) : Fragment(R.layout.item_editor) {
 
         update(activeItem)
 
-        // Clicking "back" returns user to item list screen
+        binding.helperImage.setOnClickListener {
+            parent.hideFragment()
+            imageListenerMode = ImageListener.REF_IMAGE
+        }
+
+        // TODO: add onClickListener for scan mode
+
+
+//         Clicking "back" returns user to item list screen
         requireActivity().onBackPressedDispatcher.addCallback(this) {
-            returnToListScreen()
+            if (imageListenerMode != ImageListener.NONE) {
+                exitCaptureMode()
+            } else {
+                returnToListScreen()
+            }
         }
 
         binding.cancelButton.setOnClickListener { returnToListScreen() }
@@ -56,6 +82,8 @@ class ItemEditorUI(val parent: UI) : Fragment(R.layout.item_editor) {
     }
 
     fun update(item: TrackedItem?) {
+        binding.helperImage.setImageResource(android.R.drawable.ic_input_add)
+
         if (item != null) {
 
             binding.itemNameEditor.editText?.setText(item.name)
@@ -116,6 +144,44 @@ class ItemEditorUI(val parent: UI) : Fragment(R.layout.item_editor) {
         }
 
         returnToListScreen()
+    }
+
+    fun exitCaptureMode() {
+        parent.showFragment()
+        imageListenerMode = ImageListener.NONE
+    }
+
+    fun captureImage(image: Mat) {
+
+        if(imageListenerMode == ImageListener.REF_IMAGE) {
+
+
+            refImage = image
+            UI.miscData["capturedmat"] = refImage.toString()
+
+
+            parent.displayImage(refImage!!, binding.helperImage)
+
+            UI.miscData["listener mode"] = imageListenerMode.toString() + "c"
+//            exitCaptureMode()
+        }
+
+//        when (imageListenerMode) {
+//            ImageListener.NONE -> {
+//                UI.miscData["listener mode"] = imageListenerMode.toString()
+//            }
+//            ImageListener.REF_IMAGE -> {
+//                refImage = OpenCVHelpers.imageToMat(image)
+//
+//                UI.displayImage(refImage!!, binding.helperImage)
+//                UI.miscData["listener mode"] = imageListenerMode.toString()
+//                UI.miscData["hi"] = "yyes"
+//                exitCaptureMode()
+//            }
+//            ImageListener.SCANS -> {
+//                UI.miscData["listener mode"] = imageListenerMode.toString()
+//            }
+//        }
     }
 
 

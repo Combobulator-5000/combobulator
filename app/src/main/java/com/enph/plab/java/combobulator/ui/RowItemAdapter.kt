@@ -51,7 +51,7 @@ class RowItemAdapter(private val activity: CombobulatorMainActivity, private val
         holder.itemName.text = item.name
 
         if (item.images.size > 0) {
-            UI.displayImage(item.images[0], holder.imageView)
+            activity.displayImage(holder.imageView, item.images[0])
         } else {
             // Set to default image if no reference image provided
             // Note this must be done explicitly because of how RecyclerView reuses previous entries
@@ -66,7 +66,7 @@ class RowItemAdapter(private val activity: CombobulatorMainActivity, private val
         // When the "locate" button is pressed, have the activity start tracking this item
         holder.locateButton.setOnClickListener {
             activity.setTarget(item)
-            activity.ui.hideFragment()
+            activity.ui.exitMenus()
         }
 
     }

@@ -53,7 +53,7 @@ class ItemListUI(val parent: UI) : Fragment(R.layout.item_list), SwipeRefreshLay
 
         // Clicking "back" returns user to main tracking screen
         requireActivity().onBackPressedDispatcher.addCallback(this) {
-            parent.hideFragment()
+            parent.exitMenus()
         }
 
         return view

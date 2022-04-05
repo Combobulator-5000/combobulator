@@ -18,15 +18,20 @@ package com.enph.plab.java.combobulator;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.media.Image;
 import android.net.Uri;
 import android.opengl.GLES20;
 import android.opengl.GLSurfaceView;
+import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.Toast;
+
+import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.RequestManager;
@@ -61,14 +66,15 @@ import com.google.ar.core.exceptions.UnavailableSdkTooOldException;
 import com.google.ar.core.exceptions.UnavailableUserDeclinedInstallationException;
 
 import org.opencv.android.OpenCVLoader;
+import org.opencv.android.Utils;
 import org.opencv.core.Mat;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Consumer;
 
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
@@ -126,12 +132,11 @@ public class CombobulatorMainActivity extends AppCompatActivity implements GLSur
   private TrackedItem target;
   private App app;
 
-  enum DataSource {
-    REALM,
-    JSON
-  }
+  enum DataSource {REALM, JSON}
+  private final DataSource dataSource = DataSource.JSON;
 
-  private DataSource dataSource = DataSource.REALM;
+  public enum Mode {USER, ADMIN}
+  private Mode mode = Mode.USER;
 
   // This is an authenticated connection to the Realm Sync instance;
   // it can be used to store or retrieve data.
@@ -171,7 +176,7 @@ public class CombobulatorMainActivity extends AppCompatActivity implements GLSur
               ArrayList<Mat> images = new ArrayList<Mat>();
 
               for (int i = 1; i <= 3; i++) {
-                @SuppressLint("DefaultLocale") String filename = String.format("classifier_test_images/%s%d.jpg", name, i);
+                @SuppressLint("DefaultLocale") String filename = String.format("classifier_test_images/%s/%s%d.jpg", name, name, i);
                 images.add(OpenCVHelpers.readImageMatFromAsset(filename, this));
               }
 
@@ -282,6 +287,7 @@ public class CombobulatorMainActivity extends AppCompatActivity implements GLSur
 
     installRequested = false;
 
+    enterMode(Mode.USER);
   }
 
   @Override
@@ -419,6 +425,26 @@ public class CombobulatorMainActivity extends AppCompatActivity implements GLSur
     GLES20.glViewport(0, 0, width, height);
   }
 
+  public void enterMode(Mode mode) {
+    this.mode = mode;
+  }
+
+  public Bitmap imageToBitmap(Image image) {
+
+    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+      Bitmap myBitmap = Bitmap.wrapHardwareBuffer(image.getHardwareBuffer(), null);
+      ui.set("bitmap", myBitmap.toString());
+      return myBitmap;
+    }
+    ui.set("image", image.toString());
+    ByteBuffer buffer = image.getPlanes()[0].getBuffer();
+    byte[] bytes = new byte[buffer.capacity()];
+    buffer.get(bytes);
+    Bitmap myBitmap = BitmapFactory.decodeByteArray(bytes,0,bytes.length);
+    ui.set("bitmap", myBitmap.toString());
+    return myBitmap;
+  }
+
   @Override
   public void onDrawFrame(GL10 gl) {
     // Clear screen to notify driver it should not load any pixels from previous frame.
@@ -440,26 +466,39 @@ public class CombobulatorMainActivity extends AppCompatActivity implements GLSur
       Frame frame = session.update();
       Camera camera = frame.getCamera();
 
+      // Attempt to update current position based on known locations of augmented images
+      localizer.update(frame, session, true);
+      ui.setPositionCalibrated(localizer.getCalibrated());
+
+
       // TODO: a similar structure to this would need to be used in an admin workflow.
       // If the ui has a takeImageRequestPending (or something), the image here needs to
       // be pushed to the database
       if (ui.classifyRequestPending()) {
-        Image image = frame.acquireCameraImage();
-        setTarget(classifier.evaluate(image));
-        image.close();
 
-        Map<TrackedItem, List<Integer>> objectScores = classifier.getAllObjScores();
-        for (TrackedItem obj : objectScores.keySet()) {
-          ui.set(obj.getName(), objectScores.get(obj));
+        try (Image image = frame.acquireCameraImage()) {
+          switch (mode) {
+            case USER:
+              ui.set("button press", "classify");
+
+              Mat mat = OpenCVHelpers.Companion.imageToMat(image);
+              displayImage(mat);
+              setTarget(classifier.evaluate(mat));
+
+              // Print all scores to debug panel
+              Map<TrackedItem, List<Integer>> objectScores = classifier.getAllObjScores();
+              for (TrackedItem obj : objectScores.keySet()) {
+                ui.set(obj.getName(), objectScores.get(obj));
+              }
+              break;
+            case ADMIN:
+              ui.set("button press", "capture");
+              ui.captureImage(image);
+          }
         }
-
       }
-      // Attempt to update current position based on known locations of augmented images
-      localizer.update(frame, session, true);
 
-      ui.setPositionCalibrated(localizer.getCalibrated());
       ui.updateDebugText();
-
 
       // Keep the screen unlocked while tracking, but allow it to lock when tracking stops.
       trackingStateHelper.updateKeepScreenOnFlag(camera.getTrackingState());
@@ -486,7 +525,7 @@ public class CombobulatorMainActivity extends AppCompatActivity implements GLSur
         Pose cameraAbsPose = localizer.convertToAbsPose(camera.getPose());
         ui.setLocation(cameraAbsPose);
 
-        if (isNavigating) {
+        if (mode == Mode.USER && isNavigating) {
           Pose targetPose = localizer.convertToFramePose(target.getLocation());
           Pose cameraPose = camera.getPose();
 

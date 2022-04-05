@@ -16,6 +16,7 @@ import com.google.ar.core.Pose
 import com.enph.plab.java.combobulator.database.TrackedItem
 import com.enph.plab.java.combobulator.databinding.ActivityMainBinding
 import com.enph.plab.java.common.helpers.SnackbarHelper
+import com.google.ar.core.Track
 import org.opencv.android.Utils
 import org.opencv.core.Mat
 
@@ -49,6 +50,7 @@ class UI(protected val activity: CombobulatorMainActivity) {
     var location : Pose? = null
 
     private var tracking : Boolean = false
+    private var target : TrackedItem? = null
     private var targetName : String = ""
     private var targetLocation : Pose = Pose.makeTranslation(0f,0f,0f)
 
@@ -79,6 +81,11 @@ class UI(protected val activity: CombobulatorMainActivity) {
         ui.openItemList.setOnClickListener {
             loadFragment(itemListFragment)
             ui.fragmentContainerView.visibility = View.VISIBLE
+        }
+
+        ui.reachedTargetDismiss.setOnClickListener {
+            ui.reachedTargetHint.visibility = View.GONE
+            setTarget(null)
         }
 
         updateDebugText()
@@ -138,19 +145,24 @@ class UI(protected val activity: CombobulatorMainActivity) {
         ui.fragmentContainerView.visibility = View.VISIBLE
     }
 
-    fun isFragmentVisible() : Boolean {
-        return ui.fragmentContainerView.visibility == View.VISIBLE
+    fun targetReached() {
+
+        if (target != null && target!!.locationRefImage != null) {
+            displayImage(target!!.locationRefImage!!, ui.reachedTargetImage)
+            ui.reachedTargetHint.visibility = View.VISIBLE
+        }
+
+//        target?.locationRefImage?.let {
+//            displayImage(it, ui.reachedTargetImage)
+//            ui.reachedTargetHint.visibility = View.VISIBLE
+//        }
+        setTarget(null)
     }
 
     fun setTarget(target : TrackedItem?) {
-        // Must be unpacked here,
-        if (target != null) {
-            tracking = true
-            targetName = target.name
-            targetLocation = target.location
-        } else {
-            tracking = false
-        }
+        this.target = target
+
+        tracking = (target == null)
 
         activity.runOnUiThread {
             // reset progress whenever we scan a new thing
@@ -160,12 +172,10 @@ class UI(protected val activity: CombobulatorMainActivity) {
             if (target == null) {
                 ui.trackingText.text = "No current target"
             } else {
-                ui.trackingText.text = "Tracking item: ${targetName}"
+                ui.trackingText.text = "Tracking item: ${target.name}"
             }
         }
     }
-
-
 
     fun classifyRequestPending() : Boolean {
         return classifyRequestQueue.poll()

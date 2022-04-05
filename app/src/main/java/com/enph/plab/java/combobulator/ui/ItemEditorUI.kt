@@ -64,12 +64,10 @@ class ItemEditorUI(val parent: UI) : Fragment(R.layout.item_editor) {
             imageListenerMode = ImageListener.REF_IMAGE
         }
 
-        val numScans = scans.size
-
         binding.addScans.setOnClickListener {
             parent.hideFragment()
             parent.auxButton.visibility = View.VISIBLE
-            parent.auxButton.text = "Done (scans: $numScans)"
+            parent.auxButton.text = "Done (scans: ${scans.size})"
             parent.auxButton.setOnClickListener { exitCaptureMode() }
 
             imageListenerMode = ImageListener.SCANS
@@ -197,8 +195,7 @@ class ItemEditorUI(val parent: UI) : Fragment(R.layout.item_editor) {
             }
             ImageListener.SCANS -> {
                 scans.add(image)
-                val numScans = scans.size
-                parent.auxButton.text = "Done (scans: $numScans)"
+                parent.auxButton.text = "Done (scans: ${scans.size})"
                 binding.rvScans.adapter?.notifyItemInserted(-1)
             }
         }

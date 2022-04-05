@@ -571,7 +571,7 @@ public class CombobulatorMainActivity extends AppCompatActivity implements GLSur
     target = null;
 
     // reset UI
-    ui.setTarget(null);
+    ui.targetReached();
   }
 
   private void configureSession() {

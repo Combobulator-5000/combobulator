@@ -1,0 +1,39 @@
+{
+  "markers" :
+          [
+            {
+              "x": 0.0,
+              "y": 1.5,
+              "z": 0.0,
+              "qx": 0.0,
+              "qy": 0.0,
+              "qz": 0.0,
+              "qw": 1.0,
+              "image": "earth_marker.jpg",
+              "name": "earth",
+              "width": 0.11,
+              "description": "Test location for developing the json file. Marker normal aligned on world axis X"
+            }
+          ],
+  "objects" :
+          [
+            {
+              "name": "fork",
+              "x": 0.20,
+              "y": 0.8,
+              "z": 3.4,
+              "images_path": "classifier_test_images/fork_better",
+              "reference_image": "classifier_test_images/fork_ref.jpg"
+            },
+
+            {
+              "name": "scissors",
+              "x": 0.63,
+              "y": 0.8,
+              "z": 4.66,
+              "images_path": "classifier_test_images/scissors_better",
+              "reference_image": "classifier_test_images/scissors_ref.jpg"
+            }
+          ]
+}
+

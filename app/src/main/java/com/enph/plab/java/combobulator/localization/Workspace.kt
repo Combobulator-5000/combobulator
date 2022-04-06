@@ -77,8 +77,18 @@ class Workspace(fileName : String, val context : Context, private val imgdbPath 
                         OpenCVHelpers.readImageMatFromAsset("$imagesPath/$file", context)
                     }.toMutableList()
 
-                    Classifier.addItem(TrackedItem(name, pose, images))
+                    val item = TrackedItem(name, pose, images)
+
+
+                    if (data.has("reference_image")) {
+                        val ref_image =OpenCVHelpers.readImageMatFromAsset(data.get("reference_image") as String, context)
+                        item.locationRefImage = ref_image
+                    }
+
+                    Classifier.addItem(item)
                 }
+
+
 
             } catch (e : JSONException) {
                 Log.e(TAG, "Could not add entry into database: " +

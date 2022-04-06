@@ -20,6 +20,7 @@ import static com.enph.plab.java.combobulator.ParametersKt.DATASOURCE;
 import static com.enph.plab.java.combobulator.ParametersKt.FLANN_MATCHER_PARAMS;
 import static com.enph.plab.java.combobulator.ParametersKt.JSON;
 import static com.enph.plab.java.combobulator.ParametersKt.REALM;
+import static com.enph.plab.java.combobulator.ParametersKt.THRESHOLD_DISTANCE;
 import static com.enph.plab.java.combobulator.ParametersKt.WORKSPACE_FILE;
 
 import android.annotation.SuppressLint;
@@ -122,12 +123,12 @@ public class CombobulatorMainActivity extends AppCompatActivity implements GLSur
 
   private boolean shouldConfigureSession = false;
 
-  private final double targetDistance = 0.1;
+  private final double targetDistance = THRESHOLD_DISTANCE;
 
   // Other UI elements
   public UI ui;
 
-  // Augmented image configuration and rendering.
+  // Augmented image configuration and rend ering.
   // Load a single image (true) or a pre-generated image database (false).
   private final boolean useSingleImage = true;
 
@@ -524,7 +525,10 @@ public class CombobulatorMainActivity extends AppCompatActivity implements GLSur
 
       if (localizer.getCalibrated()) {
         // Visualize augmented images.
-        drawAugmentedImages(projmtx, viewmtx, colorCorrectionRgba);
+
+        if( ui.inDebugMode() ) {
+          drawAugmentedImages(projmtx, viewmtx, colorCorrectionRgba);
+        }
 
         Pose cameraAbsPose = localizer.convertToAbsPose(camera.getPose());
         ui.setLocation(cameraAbsPose);

@@ -19,44 +19,44 @@
           [
             {
               "name": "fork",
-              "x": 0.0,
-              "y": 0.0,
-              "z": 0.0,
+              "x": 0.8,
+              "y": 1.16,
+              "z": 4.3,
               "images_path": "classifier_test_images/fork"
             },
             {
               "name": "lock",
-              "x": 0.0,
-              "y": 0.0,
-              "z": 0.0,
+              "x": 0.8,
+              "y": 1.16,
+              "z": 4.3,
               "images_path": "classifier_test_images/lock"
             },
             {
               "name": "marker",
-              "x": 0.0,
-              "y": 0.0,
-              "z": 0.0,
+              "x": 0.8,
+              "y": 1.16,
+              "z": 4.3,
               "images_path": "classifier_test_images/marker"
             },
             {
               "name": "pliers",
-              "x": 0.0,
-              "y": 0.0,
-              "z": 0.0,
+              "x": 0.8,
+              "y": 1.16,
+              "z": 4.3,
               "images_path": "classifier_test_images/pliers"
             },
             {
               "name": "scissors",
-              "x": 0.0,
-              "y": 0.0,
-              "z": 0.0,
+              "x": 0.8,
+              "y": 1.16,
+              "z": 4.3,
               "images_path": "classifier_test_images/scissors"
             },
             {
               "name": "tape",
-              "x": 0.0,
-              "y": 0.0,
-              "z": 0.0,
+              "x": 0.8,
+              "y": 1.16,
+              "z": 4.3,
               "images_path": "classifier_test_images/tape"
             }
           ]

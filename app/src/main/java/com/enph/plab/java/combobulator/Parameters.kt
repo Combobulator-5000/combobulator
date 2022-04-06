@@ -6,7 +6,11 @@ const val REALM = 1
 
 
 const val DATASOURCE = JSON
-const val WORKSPACE_FILE = "workspaces/default.json"
+const val WORKSPACE_FILE = "workspaces/project_fair.json"
+
+
+// Navigation
+const val THRESHOLD_DISTANCE = 0.2
 
 // Classifier
 const val CLASSIFIER_DISTANCE_RATIO = 0.7

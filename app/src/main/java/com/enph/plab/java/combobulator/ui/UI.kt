@@ -12,6 +12,7 @@ import androidx.lifecycle.Lifecycle
 import com.enph.plab.java.combobulator.CombobulatorMainActivity
 import com.enph.plab.java.combobulator.DEBUG_ON_AT_STARTUP
 import com.enph.plab.java.combobulator.OpenCVHelpers
+import com.enph.plab.java.combobulator.THRESHOLD_DISTANCE
 import com.enph.plab.java.combobulator.classifier.Classifier
 import com.google.ar.core.Pose
 import com.enph.plab.java.combobulator.database.TrackedItem
@@ -56,7 +57,7 @@ class UI(protected val activity: CombobulatorMainActivity) {
 
     var miscDataUpdated = false
     var maxDistance = 1.0
-    var minDistance = 0.1
+    var minDistance = THRESHOLD_DISTANCE
 
 
     init {
@@ -145,14 +146,15 @@ class UI(protected val activity: CombobulatorMainActivity) {
     }
 
     fun targetReached() {
-        if (target != null){
-            if (target!!.locationRefImage != null) {
-                activity.runOnUiThread {
+
+        activity.runOnUiThread {
+            if (target != null) {
+                if (target!!.locationRefImage != null) {
                     ui.reachedTargetHint.visibility = View.VISIBLE
                     displayImage(target!!.locationRefImage!!, ui.reachedTargetImage)
-                    setTarget(null)
                 }
             }
+            setTarget(null)
         }
     }
 
@@ -267,6 +269,9 @@ class UI(protected val activity: CombobulatorMainActivity) {
         }
     }
 
+    fun inDebugMode(): Boolean {
+        return ui.debugSwitch.isChecked
+    }
 
 
     // Handles capturing button clicks and passing the info between UI thread and the main

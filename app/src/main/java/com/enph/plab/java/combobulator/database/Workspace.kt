@@ -1,4 +1,4 @@
-package com.enph.plab.java.combobulator.localization
+package com.enph.plab.java.combobulator.database
 
 import android.content.Context
 import android.graphics.Bitmap
@@ -10,11 +10,9 @@ import com.google.ar.core.Session
 import com.enph.plab.java.combobulator.CombobulatorMainActivity
 import com.enph.plab.java.combobulator.OpenCVHelpers
 import com.enph.plab.java.combobulator.classifier.Classifier
-import com.enph.plab.java.combobulator.database.TrackedItem
 import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
-import org.opencv.core.Mat
 import java.io.IOException
 import java.lang.NullPointerException
 import kotlin.math.sqrt
@@ -77,11 +75,22 @@ class Workspace(fileName : String, val context : Context, private val imgdbPath 
                         OpenCVHelpers.readImageMatFromAsset("$imagesPath/$file", context)
                     }.toMutableList()
 
-                    Classifier.addItem(TrackedItem(name, pose, images))
+                    val item = TrackedItem(name, pose, images)
+
+
+                    if (data.has("reference_image")) {
+                        val ref_image =OpenCVHelpers.readImageMatFromAsset(data.get("reference_image") as String, context)
+                        item.locationRefImage = ref_image
+                    }
+
+                    Classifier.addItem(item)
                 }
 
+
+
             } catch (e : JSONException) {
-                Log.e(TAG, "Could not add entry into database: " +
+                Log.e(
+                    TAG, "Could not add entry into database: " +
                         "JSON not properly formatted.", e
                 )
             }
@@ -131,12 +140,14 @@ class Workspace(fileName : String, val context : Context, private val imgdbPath 
                 poseMap[imageIndex] = parsePoseFromJSON(data)
             }
             catch (e : JSONException){
-                Log.e(TAG, "Could not add entry into workspace: " +
+                Log.e(
+                    TAG, "Could not add entry into workspace: " +
                             "JSON not properly formatted.", e
                 )
             }
             catch (e : IOException) {
-                Log.e(TAG, "Could not add entry into workspace: " +
+                Log.e(
+                    TAG, "Could not add entry into workspace: " +
                             "IOException loading augmented image bitmap.", e
                 )
             }

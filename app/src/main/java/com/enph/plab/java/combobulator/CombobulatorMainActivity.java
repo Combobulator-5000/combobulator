@@ -20,6 +20,9 @@ import static com.enph.plab.java.combobulator.ParametersKt.DATASOURCE;
 import static com.enph.plab.java.combobulator.ParametersKt.FLANN_MATCHER_PARAMS;
 import static com.enph.plab.java.combobulator.ParametersKt.JSON;
 import static com.enph.plab.java.combobulator.ParametersKt.REALM;
+import static com.enph.plab.java.combobulator.ParametersKt.REALM_APP_ID;
+import static com.enph.plab.java.combobulator.ParametersKt.REALM_PARTITION;
+import static com.enph.plab.java.combobulator.ParametersKt.THRESHOLD_DISTANCE;
 import static com.enph.plab.java.combobulator.ParametersKt.WORKSPACE_FILE;
 
 import android.annotation.SuppressLint;
@@ -30,14 +33,12 @@ import android.media.Image;
 import android.net.Uri;
 import android.opengl.GLES20;
 import android.opengl.GLSurfaceView;
-import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.Toast;
 
-import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.RequestManager;
@@ -57,7 +58,7 @@ import com.enph.plab.java.combobulator.classifier.Classifier;
 import com.enph.plab.java.combobulator.database.ChangeListener;
 import com.enph.plab.java.combobulator.database.TrackedItem;
 import com.enph.plab.java.combobulator.localization.AugmentedImagesLocalizer;
-import com.enph.plab.java.combobulator.localization.Workspace;
+import com.enph.plab.java.combobulator.database.Workspace;
 import com.enph.plab.java.combobulator.rendering.AugmentedImageRenderer;
 import com.enph.plab.java.common.helpers.CameraPermissionHelper;
 import com.enph.plab.java.common.helpers.DisplayRotationHelper;
@@ -72,7 +73,6 @@ import com.google.ar.core.exceptions.UnavailableSdkTooOldException;
 import com.google.ar.core.exceptions.UnavailableUserDeclinedInstallationException;
 
 import org.opencv.android.OpenCVLoader;
-import org.opencv.android.Utils;
 import org.opencv.core.Mat;
 
 import java.io.IOException;
@@ -122,12 +122,12 @@ public class CombobulatorMainActivity extends AppCompatActivity implements GLSur
 
   private boolean shouldConfigureSession = false;
 
-  private final double targetDistance = 0.1;
+  private final double targetDistance = THRESHOLD_DISTANCE;
 
   // Other UI elements
   public UI ui;
 
-  // Augmented image configuration and rendering.
+  // Augmented image configuration and rend ering.
   // Load a single image (true) or a pre-generated image database (false).
   private final boolean useSingleImage = true;
 
@@ -160,15 +160,15 @@ public class CombobulatorMainActivity extends AppCompatActivity implements GLSur
     switch(dataSource){
       case REALM:
         Realm.init(this);
-        String appID = "combobulator9k-tlrvq";
+        String appID = REALM_APP_ID;
         app = new App(new AppConfiguration.Builder(appID).build());
         Credentials credentials = Credentials.anonymous();
         app.loginAsync(credentials, result -> {
           if (result.isSuccess()) {
             Log.v("Realm", "Database authenticated.");
             User user = app.currentUser();
-            String paritionValue = "plab";
-            SyncConfiguration config = new SyncConfiguration.Builder(user, paritionValue)
+            String partitionValue = REALM_PARTITION;
+            SyncConfiguration config = new SyncConfiguration.Builder(user, partitionValue)
                     .allowQueriesOnUiThread(true)
                     .allowWritesOnUiThread(true)
                     .build();
@@ -176,22 +176,22 @@ public class CombobulatorMainActivity extends AppCompatActivity implements GLSur
 
             new ChangeListener(realm, this).run();
 
-            for(String name : Arrays.asList("fork")) {
-              Pose pose = Pose.makeTranslation(0.5f, 1.3f, 0.75f);
-              ArrayList<Mat> images = new ArrayList<Mat>();
-
-              for (int i = 1; i <= 3; i++) {
-                @SuppressLint("DefaultLocale") String filename = String.format("classifier_test_images/%s/%s%d.jpg", name, name, i);
-                images.add(OpenCVHelpers.readImageMatFromAsset(filename, this));
-              }
-
-              RealmTrackedItem item = new RealmTrackedItem(name, pose, images);
-              realm.executeTransaction(transactionRealm -> {
-                Log.v("Realm", "pushing object");
+//            for(String name : Arrays.asList("fork")) {
+//              Pose pose = Pose.makeTranslation(0.5f, 1.3f, 0.75f);
+//              ArrayList<Mat> images = new ArrayList<Mat>();
+//
+//              for (int i = 1; i <= 3; i++) {
+//                @SuppressLint("DefaultLocale") String filename = String.format("classifier_test_images/%s/%s%d.jpg", name, name, i);
+//                images.add(OpenCVHelpers.readImageMatFromAsset(filename, this));
+//              }
+//
+//              RealmTrackedItem item = new RealmTrackedItem(name, pose, images);
+//              realm.executeTransaction(transactionRealm -> {
+//                Log.v("Realm", "pushing object");
 //            transactionRealm.insert(item);
 //          transactionRealm.commitTransaction();
-              });
-            }
+//              });
+//            }
 
 //        FutureTask<String> task = new FutureTask(new BackgroundQuickStart(app.currentUser(), this), "Test");
 //        ExecutorService executorService = Executors.newFixedThreadPool(2);
@@ -524,7 +524,10 @@ public class CombobulatorMainActivity extends AppCompatActivity implements GLSur
 
       if (localizer.getCalibrated()) {
         // Visualize augmented images.
-        drawAugmentedImages(projmtx, viewmtx, colorCorrectionRgba);
+
+        if( ui.inDebugMode() ) {
+          drawAugmentedImages(projmtx, viewmtx, colorCorrectionRgba);
+        }
 
         Pose cameraAbsPose = localizer.convertToAbsPose(camera.getPose());
         ui.setLocation(cameraAbsPose);

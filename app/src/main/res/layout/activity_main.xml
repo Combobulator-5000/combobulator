@@ -67,7 +67,8 @@
           android:layout_height="wrap_content"
           android:layout_weight="1"
           android:clickable="false"
-          android:text="Position Calibrated" />
+          android:text="Position Calibrated"
+          android:textSize="20sp" />
 
       <ImageButton
           android:id="@+id/calibHelpButton"
@@ -84,7 +85,8 @@
         android:id="@+id/trackingText"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="@string/no_target" />
+        android:text="@string/no_target"
+        android:textSize="24sp" />
 
     <ProgressBar
         android:id="@+id/trackingProgress"
